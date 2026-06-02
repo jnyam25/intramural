@@ -5,40 +5,43 @@ const uri = process.env.MONGODB_URI;
 if (!uri) {
   throw new Error("The MONGODB_URI environment variable is not set.");
 }
-// TypeScript narrowing doesn't cross module boundaries; assert non-null here.
 const mongoUri: string = uri;
 
-let encryptedClient: MongoClient | null = null;
 let encryptedClientPromise: Promise<MongoClient> | null = null;
-let unencryptedClient: MongoClient | null = null;
 let unencryptedClientPromise: Promise<MongoClient> | null = null;
 
+function makeUnencryptedClient() {
+  if (!unencryptedClientPromise) {
+    unencryptedClientPromise = new MongoClient(mongoUri, { retryWrites: true }).connect();
+  }
+  return unencryptedClientPromise;
+}
+
 export async function getDb() {
-  if (!encryptedClientPromise) {
-    encryptedClient = new MongoClient(mongoUri, {
-      ...(autoEncryptionOptions ? { autoEncryption: autoEncryptionOptions } : {}),
-      retryWrites: true,
-    });
-    encryptedClientPromise = encryptedClient.connect();
+  // Only attempt FLE when the options are configured AND the native module exists.
+  if (autoEncryptionOptions && !encryptedClientPromise) {
+    try {
+      const client = new MongoClient(mongoUri, {
+        autoEncryption: autoEncryptionOptions,
+        retryWrites: true,
+      });
+      encryptedClientPromise = client.connect();
+    } catch (err: any) {
+      // mongodb-client-encryption not available in this environment (e.g. Vercel serverless,
+      // or env vars still contain placeholder values). Fall through to plain connection.
+      encryptedClientPromise = null;
+    }
   }
 
-  const client = await encryptedClientPromise;
+  const client = await (encryptedClientPromise ?? makeUnencryptedClient());
   return client.db("intramural");
 }
 
 export async function getUnencryptedDb() {
-  if (!unencryptedClientPromise) {
-    unencryptedClient = new MongoClient(mongoUri, {
-      retryWrites: true,
-    });
-    unencryptedClientPromise = unencryptedClient.connect();
-  }
-
-  const client = await unencryptedClientPromise;
+  const client = await makeUnencryptedClient();
   return client.db("intramural");
 }
 
-// Eagerly-initialized unencrypted client for NextAuth adapter and scripts.
-// The adapter does not handle PII fields, so no FLE needed here.
+// Eagerly-initialized plain client for NextAuth adapter (no FLE needed).
 const _adapterClient = new MongoClient(mongoUri, { retryWrites: true });
 export const clientPromise: Promise<MongoClient> = _adapterClient.connect();
