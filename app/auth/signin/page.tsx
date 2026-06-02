@@ -18,13 +18,13 @@ export default function SignInPage() {
       redirect: false,
       email,
       password,
-      callbackUrl: "/",
+      callbackUrl: "/dashboard",
     });
 
     if (result?.error) {
       setError(result.error);
     } else {
-      router.push(result?.url || "/");
+      router.push(result?.url || "/dashboard");
     }
   }
 
