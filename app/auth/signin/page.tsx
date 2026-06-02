@@ -57,8 +57,11 @@ export default function SignInPage() {
           Sign in
         </button>
       </form>
-      <p style={{ marginTop: "1rem", color: "#6b7280" }}>
-        Use any email and password of at least 8 characters.
+      <p style={{ marginTop: "1.5rem", color: "#6b7280", textAlign: "center" }}>
+        Don't have an account?{" "}
+        <a href="/signup" style={{ color: "#2563eb" }}>
+          Create one
+        </a>
       </p>
     </main>
   );

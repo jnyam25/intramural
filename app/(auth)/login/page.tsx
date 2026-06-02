@@ -48,6 +48,13 @@ export default function LoginPage() {
         <p className="text-xs text-center text-gray-400">
           SSO is enforced by your school. Contact your admin if you need access.
         </p>
+
+        <p className="text-center text-sm text-gray-500">
+          New student?{" "}
+          <Link href="/signup" className="text-blue-600 hover:underline font-medium">
+            Create an account
+          </Link>
+        </p>
       </div>
     </main>
   );
