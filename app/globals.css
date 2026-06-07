@@ -365,7 +365,7 @@
 
   .progress-bar-fill {
     height: 100%;
-    width: var(--progress-width, 0%);
+    width: 0%;
     background: #CCFF00;
     border-radius: 9999px;
     transition: all 500ms;

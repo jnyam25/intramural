@@ -46,42 +46,56 @@ export function ProfilePreferencesForm({
   const toggle = (key: keyof Prefs) =>
     setPrefs((p) => ({ ...p, [key]: !p[key] }));
 
+  const NOTIFICATION_OPTIONS: [keyof Prefs, string, string][] = [
+    ["email_match_reminders", "Match Reminders", "Get notified before your upcoming matches"],
+    ["email_score_updates", "Score Updates", "Receive alerts when match scores are submitted"],
+    ["email_roster_changes", "Roster Changes", "Know when players join or leave your team"],
+  ];
+
   return (
-    <section className="bg-white rounded-lg shadow divide-y divide-gray-100">
+    <div className="card divide-y divide-gray-800">
       <div className="px-6 py-4">
-        <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide">Preferences</h2>
+        <h2 className="heading-sm text-white">Preferences</h2>
+        <p className="text-caption mt-1">Manage your display name and notification settings.</p>
       </div>
-      <form onSubmit={handleSubmit} className="px-6 py-5 space-y-5">
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Display Name</label>
+
+      <form onSubmit={handleSubmit} className="px-6 py-6 space-y-6">
+        {/* Display Name */}
+        <div className="space-y-2">
+          <label className="block text-sm font-medium text-gray-300">Display Name</label>
           <input
             type="text"
             maxLength={80}
             value={displayName}
             onChange={(e) => setDisplayName(e.target.value)}
             placeholder="Leave blank to use your account name"
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="input"
           />
         </div>
 
-        <div>
-          <p className="text-sm font-medium text-gray-700 mb-2">Email Notifications</p>
-          <div className="space-y-2">
-            {(
-              [
-                ["email_match_reminders", "Match reminders"],
-                ["email_score_updates", "Score updates"],
-                ["email_roster_changes", "Roster changes"],
-              ] as [keyof Prefs, string][]
-            ).map(([key, label]) => (
-              <label key={key} className="flex items-center gap-3 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={prefs[key] ?? false}
-                  onChange={() => toggle(key)}
-                  className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                />
-                <span className="text-sm text-gray-700">{label}</span>
+        {/* Email Notifications */}
+        <div className="space-y-3">
+          <p className="text-sm font-medium text-gray-300">Email Notifications</p>
+          <div className="space-y-3">
+            {NOTIFICATION_OPTIONS.map(([key, label, description]) => (
+              <label
+                key={key}
+                className="flex items-start gap-3 cursor-pointer group"
+              >
+                <div className="relative mt-0.5">
+                  <input
+                    type="checkbox"
+                    checked={prefs[key] ?? false}
+                    onChange={() => toggle(key)}
+                    className="sr-only peer"
+                  />
+                  <div className="w-10 h-5 bg-gray-700 peer-checked:bg-volt rounded-full transition-colors" />
+                  <div className="absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full transition-transform peer-checked:translate-x-5" />
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-gray-200">{label}</p>
+                  <p className="text-xs text-gray-500">{description}</p>
+                </div>
               </label>
             ))}
           </div>
@@ -89,10 +103,10 @@ export function ProfilePreferencesForm({
 
         {result && (
           <div
-            className={`p-3 rounded-lg text-sm ${
+            className={`p-3 rounded-xl text-sm border ${
               result.success
-                ? "bg-green-50 text-green-700 border border-green-200"
-                : "bg-red-50 text-red-700 border border-red-200"
+                ? "bg-volt/10 text-volt border-volt/20"
+                : "bg-hyper/10 text-hyper border-hyper/20"
             }`}
           >
             {result.message}
@@ -102,11 +116,18 @@ export function ProfilePreferencesForm({
         <button
           type="submit"
           disabled={submitting}
-          className="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 disabled:opacity-50 transition-colors"
+          className="btn-primary disabled:opacity-50"
         >
-          {submitting ? "Saving..." : "Save Preferences"}
+          {submitting ? (
+            <>
+              <div className="w-4 h-4 border-2 border-void/30 border-t-void rounded-full animate-spin" />
+              Saving…
+            </>
+          ) : (
+            "Save Preferences"
+          )}
         </button>
       </form>
-    </section>
+    </div>
   );
 }

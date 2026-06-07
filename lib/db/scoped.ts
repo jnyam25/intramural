@@ -13,7 +13,9 @@ import { getDb } from "@/lib/mongodb";
 
 // Collections that have no school_id (global/shared data). Accessing these
 // through getScopedDb still works — school_id is just not injected.
-const GLOBAL_COLLECTIONS = new Set(["sports", "scoring_systems"]);
+// "schools": no school_id self-reference field; platform admin lockout if scoped.
+// "users": field is school_ids[] (array plural), not school_id singular.
+const GLOBAL_COLLECTIONS = new Set(["sports", "scoring_systems", "schools", "users"]);
 
 class ScopedCollection {
   constructor(

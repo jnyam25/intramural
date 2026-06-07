@@ -45,7 +45,7 @@ function JoinTeamForm() {
     <div className="max-w-md mx-auto mt-24">
       <div className="bg-white rounded-2xl shadow-lg p-8 text-center">
         <div className="text-5xl mb-4">🏆</div>
-        <h1 className="text-2xl font-bold text-gray-900 mb-2">You've been invited!</h1>
+        <h1 className="text-2xl font-bold text-gray-900 mb-2">You&apos;ve been invited!</h1>
         <p className="text-gray-500 text-sm mb-8">
           Accept this invite to join the team roster. Your captain will need to approve you before you are eligible to play.
         </p>

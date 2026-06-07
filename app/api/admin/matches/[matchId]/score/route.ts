@@ -5,6 +5,7 @@ import { getSchoolId } from "@/lib/db/school-context";
 import { getSession } from "@/lib/auth";
 import { hasPermission, parseRoleAssignments } from "@/lib/auth/permissions";
 import { ApproveScoreRequestSchema } from "@/lib/validations/match";
+import { updateLeagueStandings } from "@/lib/standings/updater";
 
 export async function PATCH(req: NextRequest, { params }: { params: Promise<{ matchId: string }> }) {
   const { matchId } = await params;
@@ -61,8 +62,18 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ ma
     );
     await db.collection("matches").updateOne(
       { _id: new ObjectId(matchId) },
-      { $set: { status: "completed" } }
+      {
+        $set: {
+          status: "completed",
+          home_team_score: chosen.home_team_score,
+          away_team_score: chosen.away_team_score,
+        },
+      }
     );
+    const matchDoc = await db.collection("matches").findOne({ _id: new ObjectId(matchId) });
+    if (matchDoc?.league_id) {
+      updateLeagueStandings(matchDoc.league_id as string, schoolId).catch(() => {});
+    }
   } else {
     await db.collection("matches").updateOne(
       { _id: new ObjectId(matchId) },

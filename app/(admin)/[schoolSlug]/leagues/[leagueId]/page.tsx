@@ -4,6 +4,22 @@ import { getScopedDb } from "@/lib/db/scoped";
 import { redirect, notFound } from "next/navigation";
 import { ObjectId } from "mongodb";
 import Link from "next/link";
+import { TeamActions } from "@/components/admin/TeamActions";
+
+const STATUS_BADGE: Record<string, string> = {
+  draft: "badge-neutral",
+  registration: "badge-info",
+  active: "badge-success",
+  completed: "badge-neutral",
+  archived: "badge-neutral",
+};
+
+const TEAM_STATUS_BADGE: Record<string, string> = {
+  approved: "badge-success",
+  pending: "badge-neutral",
+  rejected: "bg-hyper/10 text-hyper border border-hyper/20 px-2 py-0.5 rounded-full text-xs font-medium",
+  archived: "badge-neutral",
+};
 
 export default async function AdminLeaguePage({
   params,
@@ -20,13 +36,19 @@ export default async function AdminLeaguePage({
     redirect("/dashboard");
   }
 
+  const canApproveTeams = hasPermission(session.assignments, "team:approve");
+
   const db = await getScopedDb(session.schoolId);
 
   const [league, teams, upcomingMatches, disputedMatches] = await Promise.all([
     db.collection("leagues").findOne({ _id: new ObjectId(params.leagueId) }),
     db.collection("teams").find({ league_id: params.leagueId }).toArray(),
-    db.collection("matches").find({ league_id: params.leagueId, status: "scheduled" })
-      .sort({ scheduled_at: 1 }).limit(20).toArray(),
+    db
+      .collection("matches")
+      .find({ league_id: params.leagueId, status: "scheduled" })
+      .sort({ scheduled_at: 1 })
+      .limit(20)
+      .toArray(),
     db.collection("matches").find({ league_id: params.leagueId, status: "disputed" }).toArray(),
   ]);
 
@@ -38,95 +60,119 @@ export default async function AdminLeaguePage({
     teamMap[(t as any)._id.toString()] = (t as any).name;
   }
 
-  const statusBadge: Record<string, string> = {
-    draft: "bg-gray-100 text-gray-700",
-    registration: "bg-blue-100 text-blue-800",
-    active: "bg-green-100 text-green-800",
-    completed: "bg-gray-200 text-gray-600",
-    archived: "bg-gray-100 text-gray-500",
-  };
+  const disputeCount = (disputedMatches as any[]).length;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 animate-fade-in">
       {/* Header */}
       <div className="flex items-start justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">{leagueDoc.name}</h1>
-          <p className="text-sm text-gray-500 mt-1">{leagueDoc.season}</p>
+          <div className="flex items-center gap-3 mb-1">
+            <Link
+              href={`/${params.schoolSlug}/leagues`}
+              className="text-sm text-gray-500 hover:text-gray-300 transition-colors"
+            >
+              ← Leagues
+            </Link>
+          </div>
+          <h1 className="heading-md text-white">{leagueDoc.name}</h1>
+          <p className="text-body mt-1">{leagueDoc.season}</p>
         </div>
-        <div className="flex items-center gap-3">
-          <span className={`px-3 py-1 rounded-full text-xs font-medium capitalize ${statusBadge[leagueDoc.status] ?? ""}`}>
+        <div className="flex items-center gap-3 flex-wrap justify-end">
+          <span className={STATUS_BADGE[leagueDoc.status] ?? "badge-neutral"}>
             {leagueDoc.status}
           </span>
-          <Link
-            href={`/${params.schoolSlug}/leagues/${params.leagueId}/edit`}
-            className="px-3 py-1 bg-gray-800 text-gray-300 text-xs rounded-lg hover:bg-gray-700 transition-colors"
-          >
-            Edit
-          </Link>
-          {(disputedMatches as any[]).length > 0 && (
+          {disputeCount > 0 && (
             <Link
-              href={`/${params.schoolSlug}/admin/leagues/${params.leagueId}/disputes`}
-              className="px-3 py-1 bg-red-100 text-red-800 text-xs font-semibold rounded-full hover:bg-red-200 transition-colors"
+              href={`/${params.schoolSlug}/leagues/${params.leagueId}/disputes`}
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-hyper/10 text-hyper border border-hyper/20 rounded-full text-xs font-semibold hover:bg-hyper/20 transition-colors"
             >
-              {(disputedMatches as any[]).length} Dispute{(disputedMatches as any[]).length > 1 ? "s" : ""}
+              <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg>
+              {disputeCount} Dispute{disputeCount > 1 ? "s" : ""}
             </Link>
           )}
+          <Link
+            href={`/${params.schoolSlug}/leagues/${params.leagueId}/edit`}
+            className="btn-secondary text-sm"
+          >
+            Edit League
+          </Link>
         </div>
       </div>
 
       {/* Teams */}
-      <div className="bg-white rounded-lg shadow overflow-hidden">
-        <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
-          <h2 className="font-semibold text-gray-900">Teams ({teams.length})</h2>
-          <span className="text-sm text-gray-500">Max roster: {leagueDoc.max_roster_size}</span>
+      <div className="card overflow-hidden">
+        <div className="px-6 py-4 border-b border-gray-800 flex items-center justify-between">
+          <div>
+            <h2 className="heading-sm text-white">Teams</h2>
+            <p className="text-caption mt-0.5">{teams.length} registered · Max roster: {leagueDoc.max_roster_size}</p>
+          </div>
         </div>
+
         {teams.length === 0 ? (
-          <p className="p-6 text-sm text-gray-500">No teams registered yet.</p>
+          <div className="p-8 text-center">
+            <p className="text-caption">No teams registered yet.</p>
+          </div>
         ) : (
-          <ul className="divide-y divide-gray-100">
-            {teams.map((t: any) => (
-              <li key={t._id.toString()} className="px-6 py-3 flex items-center justify-between">
-                <span className="text-sm font-medium text-gray-900">{t.name}</span>
-                <div className="flex items-center gap-3">
-                  <span className="text-xs text-gray-500">{t.roster?.length ?? 0} players</span>
-                  <span
-                    className={`px-2 py-0.5 text-xs rounded-full font-medium capitalize ${
-                      t.status === "approved"
-                        ? "bg-green-50 text-green-700"
-                        : "bg-yellow-50 text-yellow-700"
-                    }`}
-                  >
-                    {t.status}
-                  </span>
-                </div>
-              </li>
-            ))}
-          </ul>
+          <table className="data-table">
+            <thead>
+              <tr>
+                <th>Team</th>
+                <th>Players</th>
+                <th>Status</th>
+                {canApproveTeams && <th>Actions</th>}
+              </tr>
+            </thead>
+            <tbody>
+              {(teams as any[]).map((t) => (
+                <tr key={t._id.toString()}>
+                  <td className="font-medium text-gray-200">{t.name}</td>
+                  <td className="text-gray-400">{t.roster?.length ?? 0}</td>
+                  <td>
+                    <span className={TEAM_STATUS_BADGE[t.status] ?? "badge-neutral"}>
+                      {t.status ?? "pending"}
+                    </span>
+                  </td>
+                  {canApproveTeams && (
+                    <td>
+                      <TeamActions teamId={t._id.toString()} currentStatus={t.status ?? "pending"} />
+                    </td>
+                  )}
+                </tr>
+              ))}
+            </tbody>
+          </table>
         )}
       </div>
 
       {/* Schedule */}
-      <div className="bg-white rounded-lg shadow overflow-hidden">
-        <div className="px-6 py-4 border-b border-gray-100">
-          <h2 className="font-semibold text-gray-900">Upcoming Schedule</h2>
+      <div className="card overflow-hidden">
+        <div className="px-6 py-4 border-b border-gray-800 flex items-center justify-between">
+          <h2 className="heading-sm text-white">Upcoming Schedule</h2>
+          <span className="text-caption">{upcomingMatches.length} match{upcomingMatches.length !== 1 ? "es" : ""}</span>
         </div>
+
         {upcomingMatches.length === 0 ? (
-          <p className="p-6 text-sm text-gray-500">No scheduled matches.</p>
+          <div className="p-8 text-center">
+            <p className="text-caption">No scheduled matches. Generate a schedule from the Schedule page.</p>
+            <Link href="/admin/schedule" className="btn-secondary text-sm mt-4 inline-flex">
+              Go to Scheduler
+            </Link>
+          </div>
         ) : (
-          <table className="min-w-full text-sm">
-            <thead className="bg-gray-50 text-xs uppercase text-gray-500">
+          <table className="data-table">
+            <thead>
               <tr>
-                <th className="px-6 py-3 text-left">Date</th>
-                <th className="px-6 py-3 text-left">Home</th>
-                <th className="px-6 py-3 text-left">Away</th>
-                <th className="px-6 py-3 text-left">Location</th>
+                <th>Date</th>
+                <th>Home</th>
+                <th>Away</th>
+                <th>Location</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-100">
-              {upcomingMatches.map((m: any) => (
-                <tr key={m._id.toString()} className="hover:bg-gray-50">
-                  <td className="px-6 py-3 text-gray-600 whitespace-nowrap">
+            <tbody>
+              {(upcomingMatches as any[]).map((m) => (
+                <tr key={m._id.toString()}>
+                  <td className="text-gray-400 whitespace-nowrap">
                     {new Date(m.scheduled_at).toLocaleDateString("en-US", {
                       weekday: "short",
                       month: "short",
@@ -135,9 +181,9 @@ export default async function AdminLeaguePage({
                       minute: "2-digit",
                     })}
                   </td>
-                  <td className="px-6 py-3 font-medium">{teamMap[m.home_team_id] ?? m.home_team_id}</td>
-                  <td className="px-6 py-3">{teamMap[m.away_team_id] ?? m.away_team_id}</td>
-                  <td className="px-6 py-3 text-gray-500">{m.location ?? "—"}</td>
+                  <td className="font-medium text-gray-200">{teamMap[m.home_team_id] ?? m.home_team_id}</td>
+                  <td className="text-gray-400">{teamMap[m.away_team_id] ?? m.away_team_id}</td>
+                  <td className="text-gray-500">{m.location ?? "—"}</td>
                 </tr>
               ))}
             </tbody>

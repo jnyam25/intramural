@@ -24,7 +24,6 @@ export function TeamChat({ teamId, isMember }: TeamChatProps) {
   const { data: session } = useSession();
   const [messages, setMessages] = useState<Message[]>([]);
   const [newMessage, setNewMessage] = useState("");
-  const [loading, setLoading] = useState(false);
   const [sending, setSending] = useState(false);
 
   // Poll for messages every 30 seconds (async approach per plan)

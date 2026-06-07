@@ -1,5 +1,6 @@
 import { getSessionWithRoles } from "@/lib/auth";
 import { getScopedDb } from "@/lib/db/scoped";
+import { getPlatformDb } from "@/lib/db/scoped-db";
 import { hasPermission } from "@/lib/auth/permissions";
 import { redirect } from "next/navigation";
 import Link from "next/link";
@@ -12,7 +13,10 @@ export default async function AdminDashboardPage() {
     redirect("/dashboard");
   }
 
-  const scopedDb = await getScopedDb(session.schoolId);
+  const isPlatformAdmin = session.roles.includes("platform_admin");
+  const scopedDb = isPlatformAdmin
+    ? await getPlatformDb(session)
+    : await getScopedDb(session.schoolId);
 
   // Gather stats
   const [
@@ -46,6 +50,14 @@ export default async function AdminDashboardPage() {
     WAIVER_SIGNED: { icon: "📝", color: "text-cyber" },
     SCORE_SUBMITTED: { icon: "📊", color: "text-hyper" },
   };
+
+  interface AuditLogDoc {
+    _id: { toString(): string };
+    action: string;
+    timestamp: Date;
+    actor_user_id: string;
+    entity_id: string;
+  }
 
   return (
     <div className="space-y-8 animate-fade-in">
@@ -170,7 +182,7 @@ export default async function AdminDashboardPage() {
           </Link>
         </div>
         <div className="divide-y divide-gray-800">
-          {recentAuditLogs.map((log: any) => {
+          {(recentAuditLogs as unknown as AuditLogDoc[]).map((log) => {
             const actionMeta = auditLogActions[log.action] || { icon: "•", color: "text-gray-400" };
             return (
               <div key={log._id.toString()} className="px-6 py-4 flex items-center gap-4">

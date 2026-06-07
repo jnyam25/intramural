@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { WaiverStatusBadge } from "@/components/waivers/WaiverStatusBadge";
 
 interface RosterMember {
   user_id: string;
@@ -67,7 +68,7 @@ export function TeamDashboard({
                 ) : (
                   <span className="text-hyper">⏳ Pending</span>
                 )}
-                {!member.waiver_signed && <span className="text-hyper ml-2">• Waiver missing</span>}
+                <WaiverStatusBadge signed={member.waiver_signed} />
               </p>
             </div>
             {isCaptain && member.role !== "captain" && (

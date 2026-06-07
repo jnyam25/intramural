@@ -31,27 +31,27 @@ export async function getSessionWithRoles(): Promise<SessionWithRoles | null> {
     .toArray()) as unknown as z.infer<typeof RoleAssignmentDbSchema>[];
 
   const schoolIds = Array.from(
-    new Set(assignments.map((assignment: any) => assignment.school_id).filter(Boolean))
+    new Set(assignments.map((assignment) => assignment.school_id).filter(Boolean))
   );
   const sportIds = Array.from(
     new Set(
       assignments
-        .map((assignment: any) => assignment.scope?.sport_id)
-        .filter(Boolean)
+        .map((assignment) => assignment.scope?.sport_id)
+        .filter((id): id is string => id !== undefined)
     )
   );
   const leagueIds = Array.from(
     new Set(
       assignments
-        .map((assignment: any) => assignment.scope?.league_id)
-        .filter(Boolean)
+        .map((assignment) => assignment.scope?.league_id)
+        .filter((id): id is string => id !== undefined)
     )
   );
   const teamIds = Array.from(
     new Set(
       assignments
-        .map((assignment: any) => assignment.scope?.team_id)
-        .filter(Boolean)
+        .map((assignment) => assignment.scope?.team_id)
+        .filter((id): id is string => id !== undefined)
     )
   );
 
@@ -59,11 +59,11 @@ export async function getSessionWithRoles(): Promise<SessionWithRoles | null> {
     userId: session.user.id,
     schoolId: schoolIds[0] ?? "",
     schoolIds,
-    roles: Array.from(new Set(assignments.map((assignment: any) => assignment.role))),
+    roles: Array.from(new Set(assignments.map((assignment) => assignment.role))),
     sportIds,
     leagueIds,
     teamIds,
     assignments,
-    legacyRole: (session.user as any).role,
+    legacyRole: (session.user as { role?: string }).role,
   };
 }

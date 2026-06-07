@@ -37,7 +37,7 @@ export default async function SchoolAdminPage({ params }: { params: { schoolSlug
           <p className="text-body mt-1">Manage leagues, users, and settings</p>
         </div>
         <Link
-          href={`/${params.schoolSlug}/admin/leagues/create`}
+          href={`/${params.schoolSlug}/leagues/create`}
           className="btn-primary shadow-glow-volt"
         >
           <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14"/><path d="M12 5v14"/></svg>
@@ -103,19 +103,19 @@ export default async function SchoolAdminPage({ params }: { params: { schoolSlug
             <h2 className="heading-sm text-white mb-6">Quick Actions</h2>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <ActionButton
-                href={`/${params.schoolSlug}/admin/roles`}
+                href={`/${params.schoolSlug}/roles`}
                 label="Assign Roles"
                 description="Manage user permissions"
                 icon={<ShieldIcon />}
               />
               <ActionButton
-                href={`/${params.schoolSlug}/admin/waivers`}
+                href={`/${params.schoolSlug}/waivers`}
                 label="View Waivers"
                 description="Compliance & signatures"
                 icon={<FileIcon />}
               />
               <ActionButton
-                href={`/${params.schoolSlug}/admin/leagues`}
+                href={`/${params.schoolSlug}/leagues`}
                 label="Manage Leagues"
                 description="Configure seasons"
                 icon={<SettingsIcon />}
@@ -127,7 +127,7 @@ export default async function SchoolAdminPage({ params }: { params: { schoolSlug
           <div className="card p-6">
             <div className="flex items-center justify-between mb-6">
               <h2 className="heading-sm text-white">Recent Activity</h2>
-              <Link href={`/${params.schoolSlug}/admin/audit`} className="text-sm text-volt hover:underline">
+              <Link href={`/admin/audit-logs`} className="text-sm text-volt hover:underline">
                 View All
               </Link>
             </div>
@@ -233,7 +233,7 @@ function StatCard({
       <div className="mt-4 progress-bar">
         <div
           className={`progress-bar-fill ${color === "hyper" ? "bg-hyper" : color === "cyber" ? "bg-cyber" : ""}`}
-          style={{ "--progress-width": `${Math.min(100, (value / 50) * 100)}%` } as React.CSSProperties}
+          style={{ width: `${Math.min(100, (value / 50) * 100)}%` }}
         />
       </div>
     </div>

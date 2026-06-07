@@ -4,12 +4,14 @@ import {
   CountDocumentsOptions,
   Db,
   DeleteOptions,
+  DeleteResult,
   Document,
   Filter,
   FindOptions,
   OptionalUnlessRequiredId,
   UpdateFilter,
   UpdateOptions,
+  UpdateResult,
 } from "mongodb";
 import { getDb } from "@/lib/mongodb";
 import type { RoleAssignmentDbDocument } from "@/lib/validations/school";
@@ -22,9 +24,11 @@ export interface TenantScope {
   userId?: string;
 }
 
+// Collections that receive automatic school_id injection.
+// "schools" and "users" are intentionally excluded:
+//   - schools: no school_id self-reference; injection would lock platform admins to one school
+//   - users: field is school_ids[] (array), not school_id (singular)
 const TENANT_COLLECTIONS = new Set([
-  "users",
-  "schools",
   "sports",
   "leagues",
   "teams",
@@ -36,6 +40,9 @@ const TENANT_COLLECTIONS = new Set([
   "role_assignments",
   "audit_logs",
   "scoring_systems",
+  "incident_reports",
+  "referee_assignments",
+  "standings",
 ]);
 
 export interface SessionWithRoles {
@@ -51,11 +58,12 @@ class ScopedCollection<T extends Document = Document> {
   constructor(
     private collection: Collection<T>,
     private scope: TenantScope,
-    private isTenantScoped: boolean
+    private isTenantScoped: boolean,
+    private bypassIsolation = false
   ) {}
 
   private injectScope(filter: Filter<T> = {} as Filter<T>): Filter<T> {
-    if (!this.isTenantScoped) return filter;
+    if (!this.isTenantScoped || this.bypassIsolation) return filter;
 
     const scopeFilter: Filter<T> = { school_id: this.scope.schoolId } as unknown as Filter<T>;
 
@@ -68,11 +76,13 @@ class ScopedCollection<T extends Document = Document> {
     }
 
     if (this.scope.teamIds?.length) {
-      (scopeFilter as any).$or = [
-        { home_team_id: { $in: this.scope.teamIds } },
-        { away_team_id: { $in: this.scope.teamIds } },
-        { team_id: { $in: this.scope.teamIds } },
-      ];
+      Object.assign(scopeFilter, {
+        $or: [
+          { home_team_id: { $in: this.scope.teamIds } },
+          { away_team_id: { $in: this.scope.teamIds } },
+          { team_id: { $in: this.scope.teamIds } },
+        ],
+      } as unknown as Filter<T>);
     }
 
     if (this.scope.userId) {
@@ -81,11 +91,12 @@ class ScopedCollection<T extends Document = Document> {
           { user_id: this.scope.userId },
           { signer_user_id: this.scope.userId },
           { captain_user_id: this.scope.userId },
-          { _id: this.scope.userId as any },
+          { _id: this.scope.userId as unknown },
         ],
       } as Filter<T>;
 
-      scopeFilter.$and = scopeFilter.$and ? [...(scopeFilter.$and as any[]), userScope] : [userScope];
+      const mutable = scopeFilter as unknown as { $and?: Filter<T>[] };
+      mutable.$and = mutable.$and ? [...mutable.$and, userScope] : [userScope];
     }
 
     if (Object.keys(filter).length === 0) {
@@ -122,7 +133,19 @@ class ScopedCollection<T extends Document = Document> {
     return this.collection.updateMany(this.injectScope(filter), update, options);
   }
 
-  async deleteOne(filter: Filter<T>, options?: DeleteOptions) {
+  // Soft-delete for tenant-scoped collections: sets deleted_at instead of hard-removing.
+  // Hard deletes are only performed when bypassIsolation=true (platform admin / retention scripts).
+  async deleteOne(
+    filter: Filter<T>,
+    options?: DeleteOptions
+  ): Promise<UpdateResult | DeleteResult> {
+    if (this.isTenantScoped && !this.bypassIsolation) {
+      return this.collection.updateOne(
+        this.injectScope(filter),
+        { $set: { deleted_at: new Date() } } as unknown as UpdateFilter<T>,
+        options as UpdateOptions
+      );
+    }
     return this.collection.deleteOne(this.injectScope(filter), options);
   }
 
@@ -134,9 +157,8 @@ class ScopedCollection<T extends Document = Document> {
     return this.collection.countDocuments(this.injectScope(filter), options);
   }
 
-  // Aggregation with automatic $match injection for tenant isolation
   async aggregate(pipeline: Document[], options?: AggregateOptions) {
-    if (!this.isTenantScoped) {
+    if (!this.isTenantScoped || this.bypassIsolation) {
       return this.collection.aggregate(pipeline, options).toArray();
     }
 
@@ -146,11 +168,20 @@ class ScopedCollection<T extends Document = Document> {
 }
 
 export class ScopedDb {
-  constructor(private db: Db, private scope: TenantScope) {}
+  constructor(
+    private db: Db,
+    private scope: TenantScope,
+    private bypassIsolation = false
+  ) {}
 
   collection<T extends Document = Document>(name: string) {
     const isTenantScoped = TENANT_COLLECTIONS.has(name);
-    return new ScopedCollection<T>(this.db.collection(name), this.scope, isTenantScoped);
+    return new ScopedCollection<T>(
+      this.db.collection(name),
+      this.scope,
+      isTenantScoped,
+      this.bypassIsolation
+    );
   }
 }
 
@@ -158,6 +189,14 @@ export async function getScopedDb(session: SessionWithRoles) {
   const db = await getDb();
   const scope = buildScopeFromRoles(session);
   return new ScopedDb(db, scope);
+}
+
+export async function getPlatformDb(session: SessionWithRoles) {
+  if (!session.roles.includes("platform_admin")) {
+    throw new Error("getPlatformDb requires platform_admin role");
+  }
+  const db = await getDb();
+  return new ScopedDb(db, { schoolId: "" }, true);
 }
 
 export function buildScopeFromRoles(session: SessionWithRoles): TenantScope {

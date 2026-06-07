@@ -76,7 +76,15 @@ export async function POST(req: NextRequest) {
 
   await db.collection("matches").updateOne(
     { _id: match._id },
-    { $set: { status: matchStatus } }
+    {
+      $set: {
+        status: matchStatus,
+        ...(matchStatus === "completed" && {
+          home_team_score: homeTeamScore,
+          away_team_score: awayTeamScore,
+        }),
+      },
+    }
   );
 
   await db.collection("audit_logs").insertOne({

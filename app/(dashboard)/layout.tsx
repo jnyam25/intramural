@@ -36,7 +36,7 @@ export default async function DashboardLayout({
 
   return (
     <div className="flex h-screen bg-void">
-      <Sidebar userRoles={sessionWithRoles.assignments} schoolSlug={schoolSlug} />
+      <Sidebar userRoles={sessionWithRoles.assignments} schoolSlug={schoolSlug} sportIds={sessionWithRoles.sportIds} />
 
       <div className="flex-1 flex flex-col overflow-hidden">
         <Topbar user={session.user} schoolName={schoolName} />

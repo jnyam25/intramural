@@ -1,55 +1,76 @@
 import { ObjectId } from "mongodb";
 import { getUnencryptedDb } from "../lib/mongodb";
 import bcrypt from "bcryptjs";
+import crypto from "crypto";
 
-// Test credentials for different user types
 const TEST_USERS = [
   {
     type: "participant",
     email: "participant@test.intramural",
-    password: "TestPass123!",
     firstName: "Alex",
     lastName: "Participant",
     role: "participant",
-    description: "Regular student participant - can join teams and view leagues"
+    description: "Regular student — can join teams, view leagues, sign waivers",
   },
   {
     type: "captain",
     email: "captain@test.intramural",
-    password: "TestPass123!",
     firstName: "Jordan",
     lastName: "Captain",
     role: "captain",
-    description: "Team captain - can manage team roster and schedule matches"
+    description: "Team captain — manages roster, submits scores, invites players",
   },
   {
-    type: "school_admin",
-    email: "schooladmin@test.intramural",
-    password: "TestPass123!",
-    firstName: "Taylor",
-    lastName: "SchoolAdmin",
-    role: "school_admin",
-    description: "School administrator - full admin access to school settings, roles, and reports"
+    type: "coach",
+    email: "coach@test.intramural",
+    firstName: "Riley",
+    lastName: "Coach",
+    role: "coach",
+    description: "Coach — views team safety check, weekly schedule, broadcasts messages",
   },
   {
-    type: "sports_admin",
-    email: "sportsadmin@test.intramural",
-    password: "TestPass123!",
-    firstName: "Casey",
-    lastName: "SportsAdmin",
-    role: "sports_admin",
-    description: "Sports coordinator - can manage leagues, schedules, and match results"
+    type: "referee",
+    email: "referee@test.intramural",
+    firstName: "Sam",
+    lastName: "Referee",
+    role: "referee",
+    description: "Match official — assigned matches, check-in, incident reports",
   },
   {
     type: "league_admin",
     email: "leagueadmin@test.intramural",
-    password: "TestPass123!",
     firstName: "Morgan",
     lastName: "LeagueAdmin",
     role: "league_admin",
-    description: "League administrator - can manage specific league settings and standings"
-  }
+    description: "League admin — manages teams, matches, disputes for a league",
+  },
+  {
+    type: "sports_admin",
+    email: "sportsadmin@test.intramural",
+    firstName: "Casey",
+    lastName: "SportsAdmin",
+    role: "sports_admin",
+    description: "Sports coordinator — manages leagues, officials, schedules",
+  },
+  {
+    type: "school_admin",
+    email: "schooladmin@test.intramural",
+    firstName: "Taylor",
+    lastName: "SchoolAdmin",
+    role: "school_admin",
+    description: "School admin — full admin access: roles, waivers, reports, SSO, settings",
+  },
+  {
+    type: "platform_admin",
+    email: "platformadmin@test.intramural",
+    firstName: "Dev",
+    lastName: "PlatformAdmin",
+    role: "platform_admin",
+    description: "Platform admin — cross-school visibility, audit logs, eligibility, schedule",
+  },
 ];
+
+const PASSWORD = "TestPass123!";
 
 async function run() {
   const db = await getUnencryptedDb();
@@ -58,10 +79,10 @@ async function run() {
   console.log("  IntraPlay Test User Seeder");
   console.log("===========================================\n");
 
-  // Ensure there is at least one school to attach to
+  // ── School ──────────────────────────────────────────────────────────────────
   let school = await db.collection("schools").findOne({});
   if (!school) {
-    const schoolDoc = {
+    const doc = {
       _id: new ObjectId(),
       name: "Test University",
       slug: "test-university",
@@ -74,158 +95,191 @@ async function run() {
         require_parent_waiver_for_minors: false,
         allow_cross_sport_participation: true,
         default_scoring_system_id: null,
+        max_teams_per_student: 2,
+        data_retention_days: 2555,
       },
       status: "active",
       created_at: new Date(),
+      updated_at: new Date(),
     };
-    await db.collection("schools").insertOne(schoolDoc);
-    school = schoolDoc;
-    console.log("✓ Created test school:", school.name, "(" + school._id.toString() + ")\n");
+    await db.collection("schools").insertOne(doc);
+    school = doc;
+    console.log(`✓ Created school: ${school.name} (${school._id})\n`);
   } else {
-    console.log("✓ Using existing school:", school.name, "(" + school._id.toString() + ")\n");
+    console.log(`✓ Using existing school: ${school.name} (${school._id})\n`);
   }
 
-  console.log("Creating test users...\n");
+  const schoolOid = school._id as ObjectId;
+  const schoolId = schoolOid.toString();
+
+  // ── Users ────────────────────────────────────────────────────────────────────
+  console.log("Creating users...");
   console.log("-------------------------------------------");
 
-  const createdUsers: Array<{ type: string; email: string; password: string; role: string; userId: string }> = [];
+  const passwordHash = await bcrypt.hash(PASSWORD, 12);
+  const userMap: Record<string, string> = {}; // type → userId string
 
-  for (const userConfig of TEST_USERS) {
-    // Check if user already exists
-    const existing = await db.collection("users").findOne({ email: userConfig.email });
-    let userId: ObjectId;
+  for (const cfg of TEST_USERS) {
+    const existing = await db.collection("users").findOne({ email: cfg.email });
+    let userId: string;
 
     if (existing) {
-      userId = existing._id;
-      console.log(`  ${userConfig.type}:`, userConfig.email, "(already exists)");
+      userId = (existing._id as ObjectId).toString();
+      console.log(`  ${cfg.type.padEnd(14)} ${cfg.email} (exists)`);
     } else {
-      // Hash password for credentials provider
-      const passwordHash = await bcrypt.hash(userConfig.password, 12);
-
-      const userDoc = {
+      const doc = {
         _id: new ObjectId(),
-        name: `${userConfig.firstName} ${userConfig.lastName}`,
-        email: userConfig.email,
+        name: `${cfg.firstName} ${cfg.lastName}`,
+        email: cfg.email,
         emailVerified: new Date(),
         sso_provider: "credentials",
         sso_id: null,
-        first_name: userConfig.firstName,
-        last_name: userConfig.lastName,
+        first_name: cfg.firstName,
+        last_name: cfg.lastName,
         password_hash: passwordHash,
         role: "student",
         is_minor: false,
-        school_ids: [school._id],
+        school_ids: [schoolOid],
         created_at: new Date(),
         updated_at: new Date(),
       };
-
-      const res = await db.collection("users").insertOne(userDoc);
-      userId = res.insertedId as ObjectId;
-      console.log(`  ${userConfig.type}:`, userConfig.email, "(created)");
+      const res = await db.collection("users").insertOne(doc);
+      userId = res.insertedId.toString();
+      console.log(`  ${cfg.type.padEnd(14)} ${cfg.email} (created)`);
     }
 
-    // Create role assignment
-    const existingAssignment = await db.collection("role_assignments").findOne({
-      user_id: userId,
-      school_id: school._id,
-      role: userConfig.role,
-      revoked_at: { $exists: false },
-    });
-
-    if (!existingAssignment) {
-      const assignment = {
-        _id: new ObjectId(),
-        user_id: userId,
-        school_id: school._id,
-        role: userConfig.role,
-        scope: userConfig.role === "captain" ? { team_id: null } : {},
-        granted_by_user_id: userId,
-        granted_at: new Date(),
-      };
-      await db.collection("role_assignments").insertOne(assignment);
-    }
-
-    createdUsers.push({
-      type: userConfig.type,
-      email: userConfig.email,
-      password: userConfig.password,
-      role: userConfig.role,
-      userId: userId.toString(),
-    });
+    userMap[cfg.type] = userId;
   }
 
   console.log("-------------------------------------------\n");
 
-  // Create a test team for the captain
-  const captainUser = createdUsers.find(u => u.type === "captain");
-  if (captainUser) {
-    const existingTeam = await db.collection("teams").findOne({ captain_user_id: captainUser.userId });
-    if (!existingTeam) {
-      const teamDoc = {
-        _id: new ObjectId(),
-        name: "Test Thunderbolts",
-        school_id: school._id.toString(),
-        league_id: null,
-        captain_user_id: captainUser.userId,
-        roster: [
-          { user_id: captainUser.userId, joined_at: new Date(), is_active: true }
-        ],
-        created_at: new Date(),
-        updated_at: new Date(),
-      };
-      await db.collection("teams").insertOne(teamDoc);
-      console.log("✓ Created test team: 'Test Thunderbolts' for captain\n");
-    }
-  }
+  // ── Team ─────────────────────────────────────────────────────────────────────
+  let teamId: string;
+  const existingTeam = await db.collection("teams").findOne({ name: "Test Thunderbolts", school_id: schoolId });
 
-  // Create a test league for the league admin
-  const leagueAdminUser = createdUsers.find(u => u.type === "league_admin");
-  if (leagueAdminUser) {
-    const existingLeague = await db.collection("leagues").findOne({ name: "Test Basketball League" });
-    if (!existingLeague) {
-      const leagueDoc = {
-        _id: new ObjectId(),
-        name: "Test Basketball League",
-        school_id: school._id.toString(),
-        sport: "Basketball",
-        season: "Fall 2024",
-        status: "active",
-        scoring_system_id: null,
-        settings: {
-          max_teams: 12,
-          playoff_teams: 4,
-          require_waiver: true,
+  if (existingTeam) {
+    teamId = (existingTeam._id as ObjectId).toString();
+    console.log(`✓ Using existing team: Test Thunderbolts (${teamId})\n`);
+  } else {
+    const inviteCode = crypto.randomBytes(6).toString("hex").toUpperCase();
+    const teamDoc = {
+      _id: new ObjectId(),
+      name: "Test Thunderbolts",
+      school_id: schoolId,
+      league_id: null,
+      captain_user_id: userMap["captain"],
+      invite_code: inviteCode,
+      roster: [
+        {
+          user_id: userMap["captain"],
+          role: "captain",
+          status: "approved",
+          joined_at: new Date(),
+          is_active: true,
+          waiver_signed: true,
         },
-        created_at: new Date(),
-        updated_at: new Date(),
-      };
-      await db.collection("leagues").insertOne(leagueDoc);
-      console.log("✓ Created test league: 'Test Basketball League'\n");
+        {
+          user_id: userMap["coach"],
+          role: "coach",
+          status: "approved",
+          joined_at: new Date(),
+          is_active: true,
+          waiver_signed: true,
+        },
+      ],
+      created_at: new Date(),
+      updated_at: new Date(),
+    };
+    await db.collection("teams").insertOne(teamDoc);
+    teamId = teamDoc._id.toString();
+    console.log(`✓ Created team: Test Thunderbolts (invite: ${inviteCode})\n`);
+  }
+
+  // ── League ────────────────────────────────────────────────────────────────────
+  let leagueId: string;
+  const existingLeague = await db.collection("leagues").findOne({ name: "Test Basketball League" });
+
+  if (existingLeague) {
+    leagueId = (existingLeague._id as ObjectId).toString();
+    console.log(`✓ Using existing league: Test Basketball League (${leagueId})\n`);
+  } else {
+    const leagueDoc = {
+      _id: new ObjectId(),
+      name: "Test Basketball League",
+      school_id: schoolId,
+      sport_id: null,
+      scoring_system_id: null,
+      season: "Fall 2024",
+      division: "Open",
+      max_roster_size: 12,
+      eligibility_rules: {},
+      start_date: new Date(),
+      end_date: new Date(Date.now() + 90 * 24 * 60 * 60 * 1000),
+      status: "active",
+      created_at: new Date(),
+      updated_at: new Date(),
+    };
+    await db.collection("leagues").insertOne(leagueDoc);
+    leagueId = leagueDoc._id.toString();
+    console.log(`✓ Created league: Test Basketball League (${leagueId})\n`);
+  }
+
+  // ── Role Assignments ──────────────────────────────────────────────────────────
+  console.log("Assigning roles...");
+  console.log("-------------------------------------------");
+
+  // Scope rules: captain & coach are scoped to team; league_admin to league; others no scope
+  const scopeFor: Record<string, Record<string, string>> = {
+    captain:      { team_id: teamId },
+    coach:        { team_id: teamId },
+    league_admin: { league_id: leagueId },
+  };
+
+  for (const cfg of TEST_USERS) {
+    const userId = userMap[cfg.type];
+    const existing = await db.collection("role_assignments").findOne({
+      user_id: userId,
+      school_id: schoolId,
+      role: cfg.role,
+      revoked_at: { $exists: false },
+    });
+
+    if (existing) {
+      console.log(`  ${cfg.type.padEnd(14)} role '${cfg.role}' already assigned`);
+    } else {
+      await db.collection("role_assignments").insertOne({
+        _id: new ObjectId(),
+        user_id: userId,
+        school_id: schoolId,
+        role: cfg.role,
+        scope: scopeFor[cfg.type] ?? {},
+        granted_by_user_id: userMap["platform_admin"],
+        granted_at: new Date(),
+      });
+      console.log(`  ${cfg.type.padEnd(14)} granted role '${cfg.role}'`);
     }
   }
 
-  // Print summary
+  console.log("-------------------------------------------\n");
+
+  // ── Summary ───────────────────────────────────────────────────────────────────
   console.log("===========================================");
-  console.log("  TEST CREDENTIALS SUMMARY");
+  console.log("  TEST CREDENTIALS  (password: TestPass123!)");
   console.log("===========================================\n");
 
-  createdUsers.forEach((user) => {
-    const config = TEST_USERS.find(u => u.type === user.type);
-    console.log(`${user.type.toUpperCase()}`);
-    console.log(`  Email:    ${user.email}`);
-    console.log(`  Password: ${user.password}`);
-    console.log(`  Role:     ${user.role}`);
-    console.log(`  Desc:     ${config?.description}`);
-    console.log("");
-  });
+  for (const cfg of TEST_USERS) {
+    console.log(`  ${cfg.type.toUpperCase()}`);
+    console.log(`    ${cfg.email}`);
+    console.log(`    ${cfg.description}\n`);
+  }
 
   console.log("===========================================");
-  console.log("  LOGIN INSTRUCTIONS");
+  console.log("  HOW TO LOG IN");
   console.log("===========================================");
-  console.log("1. Go to: http://localhost:3000/login");
-  console.log("2. Click 'Sign in with email (dev)'");
-  console.log("3. Enter any of the emails above with password: TestPass123!");
-  console.log("\nOr use the direct credentials provider at: /auth/signin");
+  console.log("  http://localhost:3000/login");
+  console.log("  Password for all accounts: TestPass123!");
+  console.log(`\n  Admin console: http://localhost:3000/${schoolId}`);
+  console.log(`  Platform admin: http://localhost:3000/admin`);
   console.log("===========================================\n");
 
   process.exit(0);

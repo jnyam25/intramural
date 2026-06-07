@@ -1,32 +1,12 @@
 import { getSession } from "@/lib/auth";
 import { getSchoolId } from "@/lib/db/school-context";
 import { getScopedDb } from "@/lib/db/scoped";
-import { calculateStandings } from "@/lib/standings/calculator";
-import { DEFAULT_CONFIG } from "@/lib/standings/types";
 import { redirect, notFound } from "next/navigation";
 import { ObjectId } from "mongodb";
 import Link from "next/link";
 import { Fragment } from "react";
 import { WaiverSigner } from "@/components/waivers/WaiverSigner";
-
-// Form guide generator - creates visual representation of recent form (W/L/D)
-function generateFormGuide(wins: number, losses: number, ties: number) {
-  const total = Math.min(wins + losses + ties, 5); // Last 5 matches
-  const form = [];
-  
-  // Generate form dots (simplified - in real app, this would come from match history)
-  for (let i = 0; i < total; i++) {
-    if (i < wins) {
-      form.push({ result: "W", color: "bg-volt", label: "Win" });
-    } else if (i < wins + ties) {
-      form.push({ result: "D", color: "bg-gray-500", label: "Draw" });
-    } else {
-      form.push({ result: "L", color: "bg-hyper", label: "Loss" });
-    }
-  }
-  
-  return form;
-}
+import { PlayoffQualificationCard } from "@/components/standings/PlayoffQualificationCard";
 
 export default async function LeaguePage({ params }: { params: { leagueId: string } }) {
   const session = await getSession();
@@ -37,17 +17,18 @@ export default async function LeaguePage({ params }: { params: { leagueId: strin
 
   const db = await getScopedDb(schoolId);
 
-  const [league, teams, completedMatches, upcomingMatches] = await Promise.all([
+  const [league, teams, standings, upcomingMatches, matchCount] = await Promise.all([
     db.collection("leagues").findOne({ _id: new ObjectId(params.leagueId) }),
     db.collection("teams").find({ league_id: params.leagueId }).toArray(),
-    db.collection("matches").find({
-      league_id: params.leagueId,
-      status: { $in: ["completed", "forfeit"] },
-    }).toArray(),
+    db.collection("standings").find({ league_id: params.leagueId }).sort({ rank: 1 }).toArray(),
     db.collection("matches").find({
       league_id: params.leagueId,
       status: "scheduled",
     }).sort({ scheduled_at: 1 }).limit(8).toArray(),
+    db.collection("matches").countDocuments({
+      league_id: params.leagueId,
+      status: { $in: ["completed", "forfeit"] },
+    }),
   ]);
 
   if (!league) notFound();
@@ -56,19 +37,6 @@ export default async function LeaguePage({ params }: { params: { leagueId: strin
   for (const t of teams) {
     teamNames[(t as any)._id.toString()] = (t as any).name;
   }
-
-  const standings = calculateStandings(
-    completedMatches.map((m: any) => ({
-      home_team_id: m.home_team_id,
-      away_team_id: m.away_team_id,
-      home_team_score: m.home_team_score ?? 0,
-      away_team_score: m.away_team_score ?? 0,
-      status: m.status,
-      forfeit_team_role: m.forfeit_team_role ?? null,
-    })),
-    teamNames,
-    DEFAULT_CONFIG
-  );
 
   const leagueDoc = league as any;
 
@@ -108,7 +76,7 @@ export default async function LeaguePage({ params }: { params: { leagueId: strin
             <div className="px-6 py-4 border-b border-gray-800 flex items-center justify-between">
               <h2 className="heading-sm text-white">Standings</h2>
               <span className="text-xs text-gray-500">
-                {completedMatches.length} matches played
+                {matchCount} matches played
               </span>
             </div>
             {standings.length === 0 ? (
@@ -125,7 +93,6 @@ export default async function LeaguePage({ params }: { params: { leagueId: strin
                     <tr>
                       <th className="w-12">#</th>
                       <th>Team</th>
-                      <th className="text-center w-24">Form</th>
                       <th className="text-center w-10">W</th>
                       <th className="text-center w-10">L</th>
                       <th className="text-center w-10">T</th>
@@ -134,15 +101,14 @@ export default async function LeaguePage({ params }: { params: { leagueId: strin
                     </tr>
                   </thead>
                   <tbody>
-                    {standings.map((row, i) => {
-                      const formGuide = generateFormGuide(row.wins, row.losses, row.ties);
+                    {(standings as any[]).map((row, i) => {
                       const showPlayoffLine = i === 4;
-                      
+
                       return (
                         <Fragment key={row.team_id}>
                           {showPlayoffLine && (
                             <tr>
-                              <td colSpan={8} className="p-0 border-t-2 border-dashed border-volt/30">
+                              <td colSpan={7} className="p-0 border-t-2 border-dashed border-volt/30">
                                 <div className="flex items-center gap-2 px-4 py-1 bg-volt/5">
                                   <div className="w-2 h-2 rounded-full bg-volt animate-pulse" />
                                   <span className="text-xs text-volt font-medium">Playoff Cutoff</span>
@@ -151,7 +117,7 @@ export default async function LeaguePage({ params }: { params: { leagueId: strin
                             </tr>
                           )}
                           <tr className="group">
-                            <td className="text-gray-500 font-mono">{i + 1}</td>
+                            <td className="text-gray-500 font-mono">{row.rank ?? i + 1}</td>
                             <td>
                               <details className="group/details">
                                 <summary className="flex cursor-pointer list-none items-center gap-2">
@@ -167,17 +133,6 @@ export default async function LeaguePage({ params }: { params: { leagueId: strin
                                   <span className="badge-neutral">{row.ties} ties</span>
                                 </div>
                               </details>
-                            </td>
-                            <td>
-                              <div className="flex justify-center gap-1">
-                                {formGuide.map((form, idx) => (
-                                  <div
-                                    key={idx}
-                                    className={`w-2 h-2 rounded-full ${form.color} hover:scale-125 transition-transform cursor-help`}
-                                    title={form.label}
-                                  />
-                                ))}
-                              </div>
                             </td>
                             <td className="text-center">
                               <span className="text-volt font-medium">{row.wins}</span>
@@ -279,6 +234,11 @@ export default async function LeaguePage({ params }: { params: { leagueId: strin
             )}
           </div>
 
+          {/* Playoff Qualification Card */}
+          <div className="mt-6">
+            <PlayoffQualificationCard standings={standings as any} />
+          </div>
+
           {/* League Stats Mini Card */}
           <div className="card p-6 mt-6">
             <h3 className="font-display font-semibold text-white mb-4">League Stats</h3>
@@ -288,7 +248,7 @@ export default async function LeaguePage({ params }: { params: { leagueId: strin
                 <p className="text-xs text-gray-500 mt-1">Teams</p>
               </div>
               <div className="text-center p-3 rounded-xl bg-surface">
-                <p className="text-2xl font-bold text-cyber">{completedMatches.length}</p>
+                <p className="text-2xl font-bold text-cyber">{matchCount}</p>
                 <p className="text-xs text-gray-500 mt-1">Matches</p>
               </div>
             </div>

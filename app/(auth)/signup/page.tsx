@@ -161,7 +161,7 @@ export default function SignUpPage() {
           <div className="w-20 h-20 mx-auto rounded-2xl bg-volt/10 border border-volt/20 flex items-center justify-center">
             <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#CCFF00" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
           </div>
-          <h1 className="heading-sm text-white">You're all set!</h1>
+          <h1 className="heading-sm text-white">You&apos;re all set!</h1>
           <p className="text-body">Taking you to your dashboard...</p>
         </div>
       </main>

@@ -73,7 +73,7 @@ export const authOptions: AuthOptions = {
         const schoolId = process.env.PILOT_SCHOOL_ID!;
         
         // Check if user exists
-        let existingUser = await db.collection("users").findOne({ email: user.email.toLowerCase() });
+        const existingUser = await db.collection("users").findOne({ email: user.email.toLowerCase() });
         
         if (!existingUser) {
           // Create new user from Google profile

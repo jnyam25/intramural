@@ -159,7 +159,8 @@ describe("GET /api/admin/waivers", () => {
 // ---------------------------------------------------------------------------
 
 describe("PATCH /api/admin/matches/[matchId]/score", () => {
-  let PATCH: (req: NextRequest, ctx: { params: { matchId: string } }) => Promise<Response>;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  let PATCH: (req: NextRequest, ctx: any) => Promise<Response>;
 
   beforeAll(async () => {
     ({ PATCH } = await import("@/app/api/admin/matches/[matchId]/score/route"));
@@ -244,7 +245,8 @@ describe("PATCH /api/admin/matches/[matchId]/score", () => {
 // ---------------------------------------------------------------------------
 
 describe("PATCH /api/admin/teams/[teamId]", () => {
-  let PATCH: (req: NextRequest, ctx: { params: { teamId: string } }) => Promise<Response>;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  let PATCH: (req: NextRequest, ctx: any) => Promise<Response>;
 
   beforeAll(async () => {
     ({ PATCH } = await import("@/app/api/admin/teams/[teamId]/route"));
@@ -322,7 +324,8 @@ describe("PATCH /api/admin/teams/[teamId]", () => {
 // ---------------------------------------------------------------------------
 
 describe("POST /api/matches/[matchId]/incidents", () => {
-  let POST: (req: NextRequest, ctx: { params: { matchId: string } }) => Promise<Response>;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  let POST: (req: NextRequest, ctx: any) => Promise<Response>;
 
   beforeAll(async () => {
     ({ POST } = await import("@/app/api/matches/[matchId]/incidents/route"));
@@ -412,3 +415,5 @@ describe("POST /api/matches/[matchId]/incidents", () => {
     expect(res.status).not.toBe(403);
   });
 });
+
+// ScopedDb tenant isolation tests are in __tests__/unit/scoped-db.test.ts

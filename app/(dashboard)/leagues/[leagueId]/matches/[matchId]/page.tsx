@@ -6,6 +6,15 @@ import { redirect, notFound } from "next/navigation";
 import { ObjectId } from "mongodb";
 import Link from "next/link";
 
+const STATUS_LABELS: Record<string, { label: string; badge: string }> = {
+  scheduled: { label: "Scheduled", badge: "badge-info" },
+  in_progress: { label: "In Progress", badge: "badge-neutral" },
+  pending_score_approval: { label: "Pending Confirmation", badge: "badge-neutral" },
+  completed: { label: "Completed", badge: "badge-success" },
+  disputed: { label: "Disputed", badge: "bg-hyper/10 text-hyper border border-hyper/20 px-2 py-0.5 rounded-full text-xs font-medium" },
+  forfeited: { label: "Forfeited", badge: "badge-neutral" },
+};
+
 export default async function MatchPage({
   params,
 }: {
@@ -39,35 +48,29 @@ export default async function MatchPage({
   const myTeamRole = isHomeCaptain ? "home" : isAwayCaptain ? "away" : null;
   const canSubmitScore = !!myTeamRole && matchDoc.status === "scheduled";
 
-  const statusColors: Record<string, string> = {
-    scheduled: "bg-blue-100 text-blue-800",
-    in_progress: "bg-yellow-100 text-yellow-800",
-    pending_score_approval: "bg-orange-100 text-orange-800",
-    completed: "bg-green-100 text-green-800",
-    disputed: "bg-red-100 text-red-800",
-  };
+  const statusInfo = STATUS_LABELS[matchDoc.status] ?? { label: matchDoc.status, badge: "badge-neutral" };
+  const isCompleted = matchDoc.status === "completed";
+  const homeScore = matchDoc.home_team_score ?? 0;
+  const awayScore = matchDoc.away_team_score ?? 0;
 
   return (
-    <div className="max-w-3xl mx-auto space-y-6">
-      <nav className="text-sm text-gray-500">
-        <Link href={`/leagues/${params.leagueId}`} className="hover:text-gray-700">
+    <div className="max-w-3xl mx-auto space-y-6 animate-fade-in">
+      {/* Breadcrumb */}
+      <nav className="flex items-center gap-2 text-sm text-gray-500">
+        <Link href="/leagues" className="hover:text-gray-300 transition-colors">Leagues</Link>
+        <span>/</span>
+        <Link href={`/leagues/${params.leagueId}`} className="hover:text-gray-300 transition-colors">
           {(league as any).name}
         </Link>
-        {" / "}
-        <span>Match Details</span>
+        <span>/</span>
+        <span className="text-gray-400">Match</span>
       </nav>
 
-      {/* Match Header */}
-      <div className="bg-white rounded-lg shadow p-6">
-        <div className="flex items-center justify-between mb-6">
-          <span
-            className={`px-3 py-1 rounded-full text-xs font-medium capitalize ${
-              statusColors[matchDoc.status] ?? "bg-gray-100 text-gray-700"
-            }`}
-          >
-            {matchDoc.status.replace(/_/g, " ")}
-          </span>
-          <span className="text-sm text-gray-500">
+      {/* Match Card */}
+      <div className="card overflow-hidden">
+        <div className="px-6 py-4 border-b border-gray-800 flex items-center justify-between">
+          <span className={statusInfo.badge}>{statusInfo.label}</span>
+          <span className="text-sm text-gray-400">
             {new Date(matchDoc.scheduled_at).toLocaleDateString("en-US", {
               weekday: "long",
               month: "long",
@@ -78,54 +81,95 @@ export default async function MatchPage({
           </span>
         </div>
 
-        <div className="flex items-center justify-between text-center">
-          <div className="flex-1">
-            <p className="text-lg font-bold text-gray-900">
+        {/* Scoreboard */}
+        <div className="px-6 py-10 flex items-center justify-between text-center">
+          <div className="flex-1 space-y-2">
+            <p className="text-lg font-display font-semibold text-white">
               {(homeTeam as any)?.name ?? "Home Team"}
             </p>
-            {matchDoc.status === "completed" && (
-              <p className="text-4xl font-black text-gray-900 mt-2">
-                {matchDoc.home_team_score ?? 0}
+            <p className="text-xs text-gray-500 uppercase tracking-wider">Home</p>
+            {isCompleted && (
+              <p className={`text-5xl font-display font-black mt-3 ${homeScore > awayScore ? "text-volt" : "text-gray-400"}`}>
+                {homeScore}
               </p>
             )}
           </div>
-          <div className="px-6 text-xl font-bold text-gray-300">vs</div>
-          <div className="flex-1">
-            <p className="text-lg font-bold text-gray-900">
+
+          <div className="px-8 text-2xl font-bold text-gray-600">vs</div>
+
+          <div className="flex-1 space-y-2">
+            <p className="text-lg font-display font-semibold text-white">
               {(awayTeam as any)?.name ?? "Away Team"}
             </p>
-            {matchDoc.status === "completed" && (
-              <p className="text-4xl font-black text-gray-900 mt-2">
-                {matchDoc.away_team_score ?? 0}
+            <p className="text-xs text-gray-500 uppercase tracking-wider">Away</p>
+            {isCompleted && (
+              <p className={`text-5xl font-display font-black mt-3 ${awayScore > homeScore ? "text-volt" : "text-gray-400"}`}>
+                {awayScore}
               </p>
             )}
           </div>
         </div>
 
         {matchDoc.location && (
-          <p className="text-center text-sm text-gray-400 mt-4">
+          <div className="px-6 pb-4 flex items-center justify-center gap-2 text-sm text-gray-500">
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>
             {matchDoc.location}
-          </p>
+          </div>
         )}
       </div>
 
       {/* Score Submission */}
       {canSubmitScore && (
-        <div>
-          <h2 className="text-lg font-semibold mb-3">Submit Score</h2>
+        <div className="card p-6 space-y-4">
+          <h2 className="heading-sm text-white">Submit Score</h2>
+          <p className="text-caption">
+            Submit the final score as the {myTeamRole === "home" ? "home" : "away"} team captain.
+            The opposing captain will need to confirm.
+          </p>
           <ScoreSubmissionForm matchId={params.matchId} myTeamRole={myTeamRole!} />
         </div>
       )}
 
+      {/* Status Notices */}
       {matchDoc.status === "pending_score_approval" && (
-        <div className="bg-orange-50 border border-orange-200 rounded-lg p-4 text-sm text-orange-800">
-          Score submitted — waiting for the opposing captain to confirm.
+        <div className="card p-4 border-l-4 border-l-cyber">
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 rounded-lg bg-cyber/10 flex items-center justify-center text-cyber">
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>
+            </div>
+            <p className="text-sm text-gray-300">
+              Score submitted — waiting for the opposing captain to confirm.
+            </p>
+          </div>
         </div>
       )}
 
       {matchDoc.status === "disputed" && (
-        <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-sm text-red-800">
-          This match is under review. A league admin will resolve the dispute.
+        <div className="card p-4 border-l-4 border-l-hyper">
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 rounded-lg bg-hyper/10 flex items-center justify-center text-hyper">
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg>
+            </div>
+            <p className="text-sm text-gray-300">
+              This match is under review. A league admin will resolve the dispute.
+            </p>
+          </div>
+        </div>
+      )}
+
+      {matchDoc.status === "completed" && (
+        <div className="card p-4 border-l-4 border-l-volt">
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 rounded-lg bg-volt/10 flex items-center justify-center text-volt">
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+            </div>
+            <p className="text-sm text-gray-300">
+              Match complete.{" "}
+              {homeScore === awayScore
+                ? "It's a draw."
+                : `${homeScore > awayScore ? (homeTeam as any)?.name : (awayTeam as any)?.name} won ${Math.max(homeScore, awayScore)}–${Math.min(homeScore, awayScore)}.`}
+            </p>
+          </div>
         </div>
       )}
     </div>
