@@ -35,14 +35,22 @@ export type TeamInviteDbDocument = z.infer<typeof TeamInviteDbSchema>;
 
 export const AuditActionEnum = z.enum([
   "WAIVER_SIGNED",
+  "WAIVER_TEMPLATE_CREATED",
   "TEAM_CREATED",
   "INVITE_CREATED",
   "ROSTER_JOINED",
   "ROSTER_APPROVED",
   "ROSTER_REMOVED",
   "TEAM_APPROVED",
+  "TEAM_REJECTED",
+  "TEAM_DISBANDED",
   "SCORE_SUBMITTED",
   "SCORE_APPROVED",
+  "LEAGUE_CREATED",
+  "LEAGUE_UPDATED",
+  "MATCH_RESCHEDULED",
+  "MATCH_CANCELLED",
+  "INCIDENT_REPORTED",
 ]);
 
 export type AuditAction = z.infer<typeof AuditActionEnum>;

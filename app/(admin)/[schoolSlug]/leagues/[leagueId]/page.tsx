@@ -58,6 +58,12 @@ export default async function AdminLeaguePage({
           <span className={`px-3 py-1 rounded-full text-xs font-medium capitalize ${statusBadge[leagueDoc.status] ?? ""}`}>
             {leagueDoc.status}
           </span>
+          <Link
+            href={`/${params.schoolSlug}/leagues/${params.leagueId}/edit`}
+            className="px-3 py-1 bg-gray-800 text-gray-300 text-xs rounded-lg hover:bg-gray-700 transition-colors"
+          >
+            Edit
+          </Link>
           {(disputedMatches as any[]).length > 0 && (
             <Link
               href={`/${params.schoolSlug}/admin/leagues/${params.leagueId}/disputes`}

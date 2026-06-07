@@ -3,16 +3,27 @@ import { ObjectId } from "mongodb";
 import { getScopedDb } from "@/lib/db/scoped";
 import { getSchoolId } from "@/lib/db/school-context";
 import { getSession } from "@/lib/auth";
+import { hasPermission } from "@/lib/auth/permissions";
 import { ApproveScoreRequestSchema } from "@/lib/validations/match";
 
 export async function PATCH(req: NextRequest, { params }: { params: { matchId: string } }) {
   const session = await getSession();
-  if (!session?.user?.id || session.user.role !== "admin") {
-    return NextResponse.json({ error: "Admin access required" }, { status: 403 });
+  if (!session?.user?.id) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
+
   const schoolId = getSchoolId(session);
   if (!schoolId) {
     return NextResponse.json({ error: "No school context" }, { status: 401 });
+  }
+
+  const db = await getScopedDb(schoolId);
+  const assignments = await db
+    .collection("role_assignments")
+    .find({ user_id: session.user.id, school_id: schoolId, revoked_at: null })
+    .toArray();
+  if (!hasPermission(assignments as any, "score:resolve_dispute")) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
   const body = await req.json().catch(() => null);
@@ -22,7 +33,6 @@ export async function PATCH(req: NextRequest, { params }: { params: { matchId: s
   }
 
   const { decision, dispute_notes } = parsed.data;
-  const db = await getScopedDb(schoolId);
   const timestamp = new Date();
 
   const submissions = await db

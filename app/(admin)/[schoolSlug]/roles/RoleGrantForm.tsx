@@ -120,7 +120,7 @@ export function RoleGrantForm({
               <option value="">Select assignment</option>
               {assignments.map((assignment) => (
                 <option key={assignment.id} value={assignment.id}>
-                  {assignment.role.replace(/_/g, " ")} · {assignment.userId}
+                  {assignment.role.replace(/_/g, " ")} Â· {assignment.userId}
                 </option>
               ))}
             </select>

@@ -16,13 +16,27 @@ const OnboardSchoolSchema = z.object({
 });
 
 export async function POST(req: NextRequest) {
+  // Require either the platform admin secret header, or allow only if no schools exist yet (first-run bootstrap).
+  const platformSecret = process.env.PLATFORM_ADMIN_SECRET;
+  const providedSecret = req.headers.get("x-platform-admin-secret");
+  const db = await getDb();
+
+  if (platformSecret) {
+    if (providedSecret !== platformSecret) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+  } else {
+    const schoolCount = await db.collection("schools").countDocuments({});
+    if (schoolCount > 0) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+  }
+
   const body = await req.json().catch(() => null);
   const parsed = OnboardSchoolSchema.safeParse(body);
   if (!parsed.success) {
     return NextResponse.json({ error: "Invalid input", details: parsed.error.flatten() }, { status: 400 });
   }
-
-  const db = await getDb();
   const data = parsed.data;
   const now = new Date();
 

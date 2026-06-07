@@ -12,6 +12,7 @@ export const ROLE_PERMISSIONS: Record<RoleAssignment["role"], string[]> = {
     "school:view_all_reports",
     "league:create",
     "league:manage_any",
+    "school:manage_leagues",
     "sport:configure_rules",
     "sport:configure_scoring",
     "referee:assign",
@@ -25,6 +26,7 @@ export const ROLE_PERMISSIONS: Record<RoleAssignment["role"], string[]> = {
   ],
   league_admin: [
     "league:manage",
+    "school:manage_leagues",
     "team:approve",
     "match:schedule",
     "score:resolve_dispute",

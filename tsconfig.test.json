@@ -1,0 +1,13 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "module": "CommonJS",
+    "moduleResolution": "node",
+    "esModuleInterop": true,
+    "jsx": "react",
+    "noEmit": false,
+    "isolatedModules": false,
+    "types": ["jest", "node"]
+  },
+  "exclude": ["node_modules", ".next"]
+}

@@ -1,6 +1,9 @@
 import { getSession, getSessionWithRoles } from "@/lib/auth";
+import { getDb } from "@/lib/mongodb";
+import { ObjectId } from "mongodb";
 import { redirect } from "next/navigation";
 import Link from "next/link";
+import { ProfilePreferencesForm } from "./ProfilePreferencesForm";
 
 const ROLE_LABELS: Record<string, string> = {
   school_admin: "School Admin",
@@ -16,7 +19,16 @@ export default async function ProfilePage() {
   const session = await getSession();
   if (!session?.user) redirect("/login");
 
-  const sessionWithRoles = await getSessionWithRoles();
+  const [sessionWithRoles, db] = await Promise.all([
+    getSessionWithRoles(),
+    getDb(),
+  ]);
+
+  const userDoc = session.user.id
+    ? await db.collection("users").findOne({ _id: new ObjectId(session.user.id) })
+    : null;
+  const preferences = (userDoc as any)?.notification_preferences ?? {};
+  const displayName = (userDoc as any)?.display_name as string | undefined;
 
   return (
     <div className="max-w-2xl mx-auto space-y-6">
@@ -74,6 +86,9 @@ export default async function ProfilePage() {
           </ul>
         </section>
       )}
+
+      {/* Preferences */}
+      <ProfilePreferencesForm currentDisplayName={displayName} preferences={preferences} />
 
       {/* Actions */}
       <section className="bg-white rounded-lg shadow divide-y divide-gray-100">

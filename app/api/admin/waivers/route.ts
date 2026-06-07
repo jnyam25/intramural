@@ -3,6 +3,7 @@ import { getSession } from "@/lib/auth";
 import { getSchoolId } from "@/lib/db/school-context";
 import { getScopedDb } from "@/lib/db/scoped";
 import { getDb } from "@/lib/mongodb";
+import { hasPermission } from "@/lib/auth/permissions";
 import { z } from "zod";
 import { ObjectId } from "mongodb";
 
@@ -25,6 +26,16 @@ export async function GET(req: NextRequest) {
     const schoolId = getSchoolId(session);
     if (!schoolId) return NextResponse.json({ error: "No school context" }, { status: 401 });
 
+    // Check permission
+    const db0 = await getScopedDb(schoolId);
+    const assignments = await db0
+      .collection("role_assignments")
+      .find({ user_id: session.user.id, school_id: schoolId, revoked_at: null })
+      .toArray();
+    if (!hasPermission(assignments as any, "school:view_all_reports")) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+
     // 2. PARSE & VALIDATE QUERY PARAMETERS
     const { searchParams } = new URL(req.url);
     const parseResult = QueryParamsSchema.safeParse({
@@ -42,7 +53,7 @@ export async function GET(req: NextRequest) {
     }
 
     const { leagueId, userId, page, limit } = parseResult.data;
-    const db = await getScopedDb(schoolId);
+    const db = db0;
     const globalDb = await getDb();
 
     // 3. BUILD FILTER

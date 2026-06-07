@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { ObjectId } from "mongodb";
 import { unstable_cache } from "next/cache";
 import { getScopedDb } from "@/lib/db/scoped";
+import { getSession } from "@/lib/auth";
 import { calculateStandings } from "@/lib/standings/calculator";
 import { BASKETBALL_CONFIG, PointsConfig } from "@/lib/standings/types";
 
@@ -54,8 +55,12 @@ function getCachedStandings(leagueId: string, schoolId: string) {
 }
 
 export async function GET(req: NextRequest, { params }: { params: { leagueId: string } }) {
-  // schoolId extracted from the request header set by middleware (added in Sprint 5).
-  // For Sprint 1, read from a query param as a fallback for direct API testing.
+  const session = await getSession();
+  if (!session?.user?.id) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  // schoolId from header (set by middleware) or query param fallback for authenticated callers.
   const schoolId =
     req.headers.get("x-school-id") ?? req.nextUrl.searchParams.get("schoolId");
 
