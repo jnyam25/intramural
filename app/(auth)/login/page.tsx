@@ -4,54 +4,62 @@ import Link from "next/link";
 
 export default function LoginPage() {
   return (
-    <main className="min-h-screen flex items-center justify-center bg-slate-50">
-      <div className="w-full max-w-sm bg-white rounded-2xl shadow-lg p-8 space-y-6">
-        <div className="text-center">
-          <h1 className="text-2xl font-bold text-slate-900">IntraPlay</h1>
-          <p className="mt-2 text-sm text-slate-500">Sign in with your school account</p>
-        </div>
-
-        <div className="space-y-3">
-          <button
-            onClick={() => signIn("google", { callbackUrl: "/dashboard" })}
-            className="w-full flex items-center justify-center gap-3 px-4 py-2.5 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
-          >
-            <GoogleIcon />
-            Continue with Google
-          </button>
-
-          <button
-            onClick={() => signIn("azure-ad", { callbackUrl: "/dashboard" })}
-            className="w-full flex items-center justify-center gap-3 px-4 py-2.5 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
-          >
-            <MicrosoftIcon />
-            Continue with Microsoft
-          </button>
-        </div>
-
-        <div className="relative">
-          <div className="absolute inset-0 flex items-center">
-            <span className="w-full border-t border-gray-200" />
+    <main className="min-h-screen flex items-center justify-center bg-void bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-slate-850 via-void to-void">
+      <div className="w-full max-w-md p-8 space-y-8 animate-slide-up">
+        {/* Logo & Header */}
+        <div className="text-center space-y-3">
+          <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-volt/10 border border-volt/20 mb-2">
+            <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#CCFF00" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"/></svg>
           </div>
-          <div className="relative flex justify-center text-xs text-gray-400 uppercase tracking-wide">
-            <span className="bg-white px-2">or</span>
-          </div>
+          <h1 className="heading-lg text-white">IntraPlay</h1>
+          <p className="text-body">Sign in with your school account</p>
         </div>
 
-        <Link
-          href="/auth/signin"
-          className="block w-full text-center px-4 py-2.5 text-sm font-medium text-slate-600 border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors"
-        >
-          Sign in with email (dev)
-        </Link>
+        {/* Login Card */}
+        <div className="card p-8 space-y-6">
+          <div className="space-y-3">
+            <button
+              onClick={() => signIn("google", { callbackUrl: "/dashboard" })}
+              className="w-full flex items-center justify-center gap-3 px-4 py-3 bg-surface border border-gray-600 rounded-xl text-sm font-medium text-gray-200 hover:bg-surface-elevated hover:border-gray-500 transition-all active:scale-[0.98]"
+            >
+              <GoogleIcon />
+              Continue with Google
+            </button>
 
-        <p className="text-xs text-center text-gray-400">
-          SSO is enforced by your school. Contact your admin if you need access.
-        </p>
+            <button
+              onClick={() => signIn("azure-ad", { callbackUrl: "/dashboard" })}
+              className="w-full flex items-center justify-center gap-3 px-4 py-3 bg-surface border border-gray-600 rounded-xl text-sm font-medium text-gray-200 hover:bg-surface-elevated hover:border-gray-500 transition-all active:scale-[0.98]"
+            >
+              <MicrosoftIcon />
+              Continue with Microsoft
+            </button>
+          </div>
 
+          <div className="relative">
+            <div className="absolute inset-0 flex items-center">
+              <span className="w-full border-t border-gray-700" />
+            </div>
+            <div className="relative flex justify-center text-xs text-gray-500 uppercase tracking-widest">
+              <span className="bg-slate-850 px-3">or</span>
+            </div>
+          </div>
+
+          <Link
+            href="/auth/signin"
+            className="block w-full text-center px-4 py-3 text-sm font-medium text-gray-300 border border-gray-600 rounded-xl hover:bg-surface hover:border-gray-500 transition-all active:scale-[0.98]"
+          >
+            Sign in with email (dev)
+          </Link>
+
+          <p className="text-xs text-center text-gray-500">
+            SSO is enforced by your school. Contact your admin if you need access.
+          </p>
+        </div>
+
+        {/* Footer */}
         <p className="text-center text-sm text-gray-500">
           New student?{" "}
-          <Link href="/signup" className="text-blue-600 hover:underline font-medium">
+          <Link href="/signup" className="text-volt hover:text-volt-glow hover:underline font-medium transition-colors">
             Create an account
           </Link>
         </p>

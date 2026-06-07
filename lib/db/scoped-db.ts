@@ -12,6 +12,8 @@ export interface TenantScope {
 
 const TENANT_COLLECTIONS = new Set([
   "users",
+  "schools",
+  "sports",
   "leagues",
   "teams",
   "matches",
@@ -112,6 +114,23 @@ class ScopedCollection<T extends Document = Document> {
 
   async deleteMany(filter: Filter<T>, options?: any) {
     return this.collection.deleteMany(this.injectScope(filter), options);
+  }
+
+  async countDocuments(filter: Filter<T>, options?: any) {
+    return this.collection.countDocuments(this.injectScope(filter), options);
+  }
+
+  // Aggregation with automatic $match injection for tenant isolation
+  async aggregate(pipeline: any[], options?: any) {
+    if (!this.isTenantScoped) {
+      return this.collection.aggregate(pipeline, options).toArray();
+    }
+    
+    // Prepend tenant filter to pipeline
+    const scopeMatch = { $match: { school_id: this.scope.schoolId } };
+    const scopedPipeline = [scopeMatch, ...pipeline];
+    
+    return this.collection.aggregate(scopedPipeline, options).toArray();
   }
 }
 

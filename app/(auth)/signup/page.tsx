@@ -24,8 +24,12 @@ const EMPTY: FormData = {
 
 function PasswordRule({ met, label }: { met: boolean; label: string }) {
   return (
-    <li className={`flex items-center gap-1.5 text-xs ${met ? "text-green-600" : "text-gray-400"}`}>
-      <span>{met ? "✓" : "○"}</span>
+    <li className={`flex items-center gap-1.5 text-xs ${met ? "text-volt" : "text-gray-500"}`}>
+      <span>{met ? (
+        <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+      ) : (
+        <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/></svg>
+      )}</span>
       {label}
     </li>
   );
@@ -39,23 +43,24 @@ function StrengthBar({ password }: { password: string }) {
     /[^A-Za-z0-9]/.test(password),
   ].filter(Boolean).length;
 
-  const colors = ["", "bg-red-400", "bg-orange-400", "bg-yellow-400", "bg-green-500"];
+  const colors = ["", "bg-hyper", "bg-hyper/70", "bg-volt/70", "bg-volt"];
   const labels = ["", "Weak", "Fair", "Good", "Strong"];
+  const textColors = ["", "text-hyper", "text-hyper/70", "text-volt/70", "text-volt"];
 
   return (
-    <div className="space-y-1.5">
+    <div className="space-y-2">
       <div className="flex gap-1">
         {[1, 2, 3, 4].map((i) => (
           <div
             key={i}
-            className={`h-1 flex-1 rounded-full transition-colors ${
-              score >= i ? colors[score] : "bg-gray-200"
+            className={`h-1.5 flex-1 rounded-full transition-colors ${
+              score >= i ? colors[score] : "bg-gray-700"
             }`}
           />
         ))}
       </div>
       {password && (
-        <p className={`text-xs font-medium ${score <= 1 ? "text-red-500" : score <= 2 ? "text-orange-500" : score <= 3 ? "text-yellow-600" : "text-green-600"}`}>
+        <p className={`text-xs font-medium ${textColors[score]}`}>
           {labels[score]}
         </p>
       )}
@@ -151,52 +156,60 @@ export default function SignUpPage() {
   // ── Success screen ─────────────────────────────────────────────────
   if (step === "done") {
     return (
-      <main className="min-h-screen flex items-center justify-center bg-slate-50">
-        <div className="w-full max-w-sm bg-white rounded-2xl shadow-lg p-8 text-center space-y-4">
-          <div className="text-5xl">🎉</div>
-          <h1 className="text-xl font-bold text-gray-900">You're all set!</h1>
-          <p className="text-sm text-gray-500">Taking you to your dashboard…</p>
+      <main className="min-h-screen flex items-center justify-center bg-void bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-slate-850 via-void to-void">
+        <div className="w-full max-w-md p-8 text-center space-y-6 animate-slide-up">
+          <div className="w-20 h-20 mx-auto rounded-2xl bg-volt/10 border border-volt/20 flex items-center justify-center">
+            <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#CCFF00" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+          </div>
+          <h1 className="heading-sm text-white">You're all set!</h1>
+          <p className="text-body">Taking you to your dashboard...</p>
         </div>
       </main>
     );
   }
 
   return (
-    <main className="min-h-screen flex items-center justify-center bg-slate-50 py-12">
-      <div className="w-full max-w-sm">
+    <main className="min-h-screen flex items-center justify-center bg-void bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-slate-850 via-void to-void py-12">
+      <div className="w-full max-w-md p-8 space-y-8 animate-slide-up">
+        {/* Logo */}
+        <div className="text-center space-y-3">
+          <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-volt/10 border border-volt/20 mb-2">
+            <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#CCFF00" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"/></svg>
+          </div>
+          <h1 className="heading-lg text-white">Create your account</h1>
+          <p className="text-body">Join your school sports community</p>
+        </div>
+
         {/* Progress indicator */}
-        <div className="flex items-center gap-2 mb-6 px-1">
+        <div className="flex items-center gap-2 px-1">
           {(["details", "password"] as const).map((s, i) => (
             <div key={s} className="flex items-center gap-2 flex-1">
               <div
-                className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold transition-colors ${
+                className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold transition-colors ${
                   step === s
-                    ? "bg-blue-600 text-white"
+                    ? "bg-volt text-void"
                     : (step === "password" && s === "details") || step === "submitting"
-                    ? "bg-green-500 text-white"
-                    : "bg-gray-200 text-gray-500"
+                    ? "bg-volt/50 text-white"
+                    : "bg-surface text-gray-500 border border-gray-700"
                 }`}
               >
-                {(step === "password" && s === "details") || step === "submitting" ? "✓" : i + 1}
+                {(step === "password" && s === "details") || step === "submitting" ? (
+                  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                ) : (
+                  i + 1
+                )}
               </div>
-              <span className={`text-xs font-medium ${step === s ? "text-gray-900" : "text-gray-400"}`}>
+              <span className={`text-xs font-medium ${step === s ? "text-white" : "text-gray-500"}`}>
                 {s === "details" ? "Your info" : "Security"}
               </span>
-              {i === 0 && <div className="flex-1 h-px bg-gray-200 mx-1" />}
+              {i === 0 && <div className="flex-1 h-px bg-gray-700 mx-1" />}
             </div>
           ))}
         </div>
 
-        <div className="bg-white rounded-2xl shadow-lg p-8 space-y-6">
-          <div>
-            <h1 className="text-2xl font-bold text-slate-900">Create your account</h1>
-            <p className="text-sm text-slate-500 mt-1">
-              {step === "details" ? "Tell us who you are." : "Choose a strong password."}
-            </p>
-          </div>
-
+        <div className="card p-8 space-y-6">
           {error && (
-            <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-800">
+            <div className="p-3 bg-hyper/10 border border-hyper/20 rounded-xl text-sm text-hyper">
               {error}
             </div>
           )}
@@ -229,9 +242,10 @@ export default function SignUpPage() {
               />
               <button
                 onClick={handleNext}
-                className="w-full py-2.5 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 transition-colors"
+                className="btn-primary w-full"
               >
                 Continue
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
               </button>
             </div>
           )}
@@ -249,9 +263,9 @@ export default function SignUpPage() {
                   autoFocus
                 />
                 {form.password && (
-                  <div className="space-y-2 mt-2">
+                  <div className="space-y-2 mt-3">
                     <StrengthBar password={form.password} />
-                    <ul className="space-y-1">
+                    <ul className="space-y-1.5">
                       <PasswordRule met={form.password.length >= 8} label="At least 8 characters" />
                       <PasswordRule met={/[A-Z]/.test(form.password)} label="Uppercase letter" />
                       <PasswordRule met={/[0-9]/.test(form.password)} label="Number" />
@@ -273,28 +287,35 @@ export default function SignUpPage() {
                 <button
                   type="button"
                   onClick={() => setStep("details")}
-                  className="flex-1 py-2.5 border border-gray-300 text-gray-700 font-medium rounded-lg hover:bg-gray-50 transition-colors"
+                  className="flex-1 btn-secondary"
                 >
                   Back
                 </button>
                 <button
                   type="submit"
                   disabled={step === "submitting"}
-                  className="flex-1 py-2.5 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 disabled:opacity-60 transition-colors"
+                  className="flex-1 btn-primary disabled:opacity-60"
                 >
-                  {step === "submitting" ? "Creating account…" : "Create account"}
+                  {step === "submitting" ? (
+                    <>
+                      <div className="w-4 h-4 border-2 border-void/30 border-t-void rounded-full animate-spin" />
+                      Creating...
+                    </>
+                  ) : (
+                    "Create account"
+                  )}
                 </button>
               </div>
             </form>
           )}
-
-          <p className="text-center text-sm text-gray-500">
-            Already have an account?{" "}
-            <Link href="/auth/signin" className="text-blue-600 hover:underline font-medium">
-              Sign in
-            </Link>
-          </p>
         </div>
+
+        <p className="text-center text-sm text-gray-500">
+          Already have an account?{" "}
+          <Link href="/auth/signin" className="text-volt hover:text-volt-glow hover:underline font-medium transition-colors">
+            Sign in
+          </Link>
+        </p>
       </div>
     </main>
   );
@@ -319,19 +340,19 @@ function Field({
   autoFocus?: boolean;
 }) {
   return (
-    <div className="space-y-1">
-      <label className="block text-sm font-medium text-gray-700">{label}</label>
+    <div className="space-y-1.5">
+      <label className="block text-sm font-medium text-gray-300">{label}</label>
       <input
         type={type}
         value={value}
         onChange={onChange}
         placeholder={placeholder}
         autoFocus={autoFocus}
-        className={`w-full border rounded-lg px-3 py-2 text-sm outline-none transition-colors focus:ring-2 focus:ring-blue-500 ${
-          error ? "border-red-400 bg-red-50" : "border-gray-300"
+        className={`w-full bg-surface border rounded-xl px-4 py-3 text-sm text-white outline-none transition-all focus:border-volt focus:ring-1 focus:ring-volt ${
+          error ? "border-hyper" : "border-gray-600"
         }`}
       />
-      {error && <p className="text-xs text-red-600">{error}</p>}
+      {error && <p className="text-xs text-hyper">{error}</p>}
     </div>
   );
 }

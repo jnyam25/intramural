@@ -40,30 +40,34 @@ export function TeamDashboard({
   };
 
   return (
-    <div className="bg-white rounded-lg shadow p-6">
+    <div className="card p-6">
       {isCaptain && inviteUrl && (
-        <div className="mb-6 p-4 bg-blue-50 rounded border border-blue-200">
-          <p className="text-sm font-medium text-blue-900 mb-2">Share this invite link with teammates:</p>
+        <div className="mb-6 p-4 bg-surface rounded-xl border border-gray-700">
+          <p className="text-sm font-medium text-gray-300 mb-2">Share this invite link with teammates:</p>
           <div className="flex gap-2">
-            <code className="flex-1 text-xs bg-white p-2 rounded border truncate">{inviteUrl}</code>
-            <button onClick={copyInvite} className="px-3 py-1 text-sm bg-blue-600 text-white rounded">
+            <code className="flex-1 text-xs bg-void p-2 rounded border border-gray-700 text-volt font-mono">{inviteUrl}</code>
+            <button onClick={copyInvite} className="btn-secondary py-2 px-3 text-sm">
               {copied ? "Copied!" : "Copy"}
             </button>
           </div>
         </div>
       )}
 
-      <h2 className="text-lg font-semibold mb-4">Roster</h2>
-      <ul className="divide-y">
+      <h2 className="heading-sm text-white mb-4">Roster</h2>
+      <div className="divide-y divide-gray-800">
         {roster.map((member) => (
-          <li key={member.user_id} className="py-3 flex items-center justify-between">
+          <div key={member.user_id} className="py-3 flex items-center justify-between">
             <div>
-              <p className="font-medium">
-                {member.user_name} {member.role === "captain" && "👑"}
+              <p className="font-medium text-white">
+                {member.user_name} {member.role === "captain" && <span className="text-volt">👑</span>}
               </p>
               <p className="text-xs text-gray-500">
-                {member.status === "approved" ? "✅ Approved" : "⏳ Pending"}
-                {!member.waiver_signed && " • ⚠️ Waiver missing"}
+                {member.status === "approved" ? (
+                  <span className="text-volt">✓ Approved</span>
+                ) : (
+                  <span className="text-hyper">⏳ Pending</span>
+                )}
+                {!member.waiver_signed && <span className="text-hyper ml-2">• Waiver missing</span>}
               </p>
             </div>
             {isCaptain && member.role !== "captain" && (
@@ -71,22 +75,22 @@ export function TeamDashboard({
                 {member.status === "pending_approval" && member.waiver_signed && (
                   <button
                     onClick={() => handleRosterAction(member.user_id, "approve")}
-                    className="px-3 py-1 text-xs bg-green-600 text-white rounded"
+                    className="btn-primary py-1 px-3 text-xs"
                   >
                     Approve
                   </button>
                 )}
                 <button
                   onClick={() => handleRosterAction(member.user_id, "remove")}
-                  className="px-3 py-1 text-xs bg-red-100 text-red-700 rounded"
+                  className="btn-ghost py-1 px-3 text-xs text-hyper hover:bg-hyper/10"
                 >
                   Remove
                 </button>
               </div>
             )}
-          </li>
+          </div>
         ))}
-      </ul>
+      </div>
     </div>
   );
 }

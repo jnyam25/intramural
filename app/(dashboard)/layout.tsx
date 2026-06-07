@@ -35,12 +35,12 @@ export default async function DashboardLayout({
   const schoolName = school?.name ?? "IntraPlay";
 
   return (
-    <div className="flex h-screen bg-gray-50">
+    <div className="flex h-screen bg-void">
       <Sidebar userRoles={sessionWithRoles.assignments} schoolSlug={schoolSlug} />
 
       <div className="flex-1 flex flex-col overflow-hidden">
         <Topbar user={session.user} schoolName={schoolName} />
-        <main className="flex-1 overflow-y-auto p-6">{children}</main>
+        <main className="flex-1 overflow-y-auto p-6 bg-void">{children}</main>
       </div>
     </div>
   );

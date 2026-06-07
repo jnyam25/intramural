@@ -5,6 +5,7 @@ export type RoleAssignment = z.infer<typeof RoleAssignmentDbSchema>;
 export type PermissionResourceType = "sport" | "league" | "team" | "school" | "match" | "score_submission";
 
 export const ROLE_PERMISSIONS: Record<RoleAssignment["role"], string[]> = {
+  platform_admin: ["*"], // All permissions
   school_admin: [
     "school:manage_settings",
     "school:assign_roles",
@@ -41,19 +42,23 @@ export function hasPermission(
   resourceType?: PermissionResourceType
 ): boolean {
   for (const assignment of roles) {
+    // Platform admin has all permissions
+    if (assignment.role === "platform_admin") return true;
+    
     const rolePerms = ROLE_PERMISSIONS[assignment.role] || [];
-    if (!rolePerms.includes(permission)) continue;
+    
+    // Check if role has the permission or wildcard
+    const hasPerm = rolePerms.includes(permission) || 
+                    rolePerms.includes(permission.split(":")[0] + ":*") ||
+                    rolePerms.includes("*");
+    
+    if (!hasPerm) continue;
 
-    if (resourceType === "sport" && resourceId && assignment.scope?.sport_id !== resourceId) {
-      continue;
-    }
-
-    if (resourceType === "league" && resourceId && assignment.scope?.league_id !== resourceId) {
-      continue;
-    }
-
-    if (resourceType === "team" && resourceId && assignment.scope?.team_id !== resourceId) {
-      continue;
+    // Check scope match
+    if (resourceType && resourceId) {
+      if (resourceType === "sport" && assignment.scope?.sport_id !== resourceId) continue;
+      if (resourceType === "league" && assignment.scope?.league_id !== resourceId) continue;
+      if (resourceType === "team" && assignment.scope?.team_id !== resourceId) continue;
     }
 
     return true;

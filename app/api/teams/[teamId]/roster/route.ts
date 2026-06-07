@@ -5,6 +5,74 @@ import { getSchoolId } from "@/lib/db/school-context";
 import { getSession } from "@/lib/auth";
 import { ApproveRosterMemberSchema } from "@/lib/validations/team";
 
+// GET /api/teams/[teamId]/roster - List roster with user details
+export async function GET(
+  req: NextRequest,
+  { params }: { params: { teamId: string } }
+) {
+  const session = await getSession();
+  if (!session?.user?.id) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  const schoolId = getSchoolId(session);
+  if (!schoolId) {
+    return NextResponse.json({ error: "No school context" }, { status: 401 });
+  }
+
+  const db = await getScopedDb(schoolId);
+  const team = await db
+    .collection("teams")
+    .findOne({ _id: new ObjectId(params.teamId), school_id: schoolId });
+
+  if (!team) {
+    return NextResponse.json({ error: "Team not found" }, { status: 404 });
+  }
+
+  // Check if user is on the team or is captain
+  const isCaptain = team.captain_user_id === session.user.id;
+  const isMember = team.roster?.some(
+    (m: any) => m.user_id === session.user.id && m.status === "approved"
+  );
+
+  if (!isCaptain && !isMember) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
+
+  // Fetch user details for each roster member
+  const rosterWithDetails = await Promise.all(
+    team.roster.map(async (member: any) => {
+      const user = await db
+        .collection("users")
+        .findOne({ _id: new ObjectId(member.user_id) });
+      return {
+        ...member,
+        user: user
+          ? {
+              id: user._id.toString(),
+              first_name: user.first_name,
+              last_name: user.last_name,
+              email: user.email,
+              image: user.image,
+            }
+          : null,
+      };
+    })
+  );
+
+  return NextResponse.json({
+    team: {
+      id: team._id.toString(),
+      name: team.name,
+      captain_user_id: team.captain_user_id,
+      invite_code: isCaptain ? team.invite_code : null, // Only captain sees invite code
+    },
+    roster: rosterWithDetails,
+    isCaptain,
+  });
+}
+
+// PATCH /api/teams/[teamId]/roster - Approve/deny/remove members
 export async function PATCH(req: NextRequest, { params }: { params: { teamId: string } }) {
   const session = await getSession();
   if (!session?.user?.id) {
