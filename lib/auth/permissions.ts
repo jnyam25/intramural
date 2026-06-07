@@ -1,4 +1,5 @@
 import { z } from "zod";
+import type { WithId, Document } from "mongodb";
 import { RoleAssignmentDbSchema } from "@/lib/validations/school";
 
 export type RoleAssignment = z.infer<typeof RoleAssignmentDbSchema>;
@@ -36,6 +37,25 @@ export const ROLE_PERMISSIONS: Record<RoleAssignment["role"], string[]> = {
   captain: ["team:manage_roster", "team:invite", "score:submit"],
   participant: ["self:register", "self:sign_waiver", "self:view_schedule"],
 };
+
+/**
+ * Converts raw MongoDB role_assignment documents to typed RoleAssignment[].
+ * Handles ObjectId _id → string and strips null fields so Zod optional()
+ * receives undefined rather than null.
+ */
+export function parseRoleAssignments(docs: WithId<Document>[]): RoleAssignment[] {
+  return docs.map((doc) => {
+    const plain: Record<string, unknown> = {};
+    for (const [k, v] of Object.entries(doc)) {
+      if (k === "_id") {
+        plain._id = String(v);
+      } else if (v !== null) {
+        plain[k] = v;
+      }
+    }
+    return RoleAssignmentDbSchema.parse(plain);
+  });
+}
 
 export function hasPermission(
   roles: RoleAssignment[],

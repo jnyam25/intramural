@@ -79,8 +79,8 @@ export function RoleGrantForm({
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-300 mb-1">Role</label>
-            <select value={role} onChange={(e) => setRole(e.target.value)} className="input">
+            <label htmlFor="grant-role" className="block text-sm font-medium text-gray-300 mb-1">Role</label>
+            <select id="grant-role" value={role} onChange={(e) => setRole(e.target.value)} className="input">
               {ROLES.map((r) => (
                 <option key={r} value={r}>
                   {r.replace(/_/g, " ")}
@@ -110,8 +110,9 @@ export function RoleGrantForm({
         <h2 className="heading-sm text-white mb-4">Revoke Role</h2>
         <form onSubmit={handleRevoke} className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-gray-300 mb-1">Active Assignment</label>
+            <label htmlFor="revoke-assignment" className="block text-sm font-medium text-gray-300 mb-1">Active Assignment</label>
             <select
+              id="revoke-assignment"
               value={assignmentId}
               onChange={(e) => setAssignmentId(e.target.value)}
               required

@@ -118,8 +118,9 @@ export default function SchedulePage() {
         <form onSubmit={handleGenerate} className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
-              <label className="text-sm font-medium text-gray-300">Select League</label>
+              <label htmlFor="schedule-league" className="text-sm font-medium text-gray-300">Select League</label>
               <select
+                id="schedule-league"
                 value={selectedLeague}
                 onChange={(e) => setSelectedLeague(e.target.value)}
                 className="input"
@@ -135,8 +136,9 @@ export default function SchedulePage() {
             </div>
 
             <div className="space-y-2">
-              <label className="text-sm font-medium text-gray-300">Start Date</label>
+              <label htmlFor="schedule-start-date" className="text-sm font-medium text-gray-300">Start Date</label>
               <input
+                id="schedule-start-date"
                 type="date"
                 value={startDate}
                 onChange={(e) => setStartDate(e.target.value)}

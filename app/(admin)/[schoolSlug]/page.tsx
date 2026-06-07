@@ -233,7 +233,7 @@ function StatCard({
       <div className="mt-4 progress-bar">
         <div
           className={`progress-bar-fill ${color === "hyper" ? "bg-hyper" : color === "cyber" ? "bg-cyber" : ""}`}
-          style={{ width: `${Math.min(100, (value / 50) * 100)}%` }}
+          style={{ "--progress-width": `${Math.min(100, (value / 50) * 100)}%` } as React.CSSProperties}
         />
       </div>
     </div>

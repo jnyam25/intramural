@@ -3,7 +3,7 @@ import { getSession } from "@/lib/auth";
 import { getSchoolId } from "@/lib/db/school-context";
 import { getScopedDb } from "@/lib/db/scoped";
 import { getDb } from "@/lib/mongodb";
-import { hasPermission } from "@/lib/auth/permissions";
+import { hasPermission, parseRoleAssignments } from "@/lib/auth/permissions";
 import { z } from "zod";
 import { ObjectId } from "mongodb";
 
@@ -16,26 +16,27 @@ const QueryParamsSchema = z.object({
 });
 
 export async function GET(req: NextRequest) {
-  try {
-    // 1. ADMIN AUTHORIZATION CHECK
-    const session = await getSession();
-    if (!session?.user?.id) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
+  // Auth and permission check run outside try/catch so errors propagate cleanly.
+  const session = await getSession();
+  if (!session?.user?.id) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
 
-    const schoolId = getSchoolId(session);
-    if (!schoolId) return NextResponse.json({ error: "No school context" }, { status: 401 });
+  const schoolId = getSchoolId(session);
+  if (!schoolId) return NextResponse.json({ error: "No school context" }, { status: 401 });
 
-    // Check permission
-    const db0 = await getScopedDb(schoolId);
-    const assignments = await db0
+  const db0 = await getScopedDb(schoolId);
+  const assignments = parseRoleAssignments(
+    await db0
       .collection("role_assignments")
       .find({ user_id: session.user.id, school_id: schoolId, revoked_at: null })
-      .toArray();
-    if (!hasPermission(assignments as any, "school:view_all_reports")) {
-      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-    }
+      .toArray()
+  );
+  if (!hasPermission(assignments, "school:view_all_reports")) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
 
+  try {
     // 2. PARSE & VALIDATE QUERY PARAMETERS
     const { searchParams } = new URL(req.url);
     const parseResult = QueryParamsSchema.safeParse({

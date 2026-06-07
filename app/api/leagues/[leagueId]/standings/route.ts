@@ -54,7 +54,8 @@ function getCachedStandings(leagueId: string, schoolId: string) {
   );
 }
 
-export async function GET(req: NextRequest, { params }: { params: { leagueId: string } }) {
+export async function GET(req: NextRequest, { params }: { params: Promise<{ leagueId: string }> }) {
+  const { leagueId } = await params;
   const session = await getSession();
   if (!session?.user?.id) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -69,7 +70,7 @@ export async function GET(req: NextRequest, { params }: { params: { leagueId: st
   }
 
   try {
-    const standings = await getCachedStandings(params.leagueId, schoolId)();
+    const standings = await getCachedStandings(leagueId, schoolId)();
     return NextResponse.json(standings);
   } catch {
     return NextResponse.json({ error: "Failed to load standings" }, { status: 500 });

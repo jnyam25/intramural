@@ -105,6 +105,7 @@ export default function AuditLogsPage() {
             className="input flex-1"
           />
           <select
+            aria-label="Filter by action type"
             value={filter}
             onChange={(e) => {
               setFilter(e.target.value);

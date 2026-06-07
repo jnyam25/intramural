@@ -26,7 +26,7 @@ export async function getDb() {
         retryWrites: true,
       });
       encryptedClientPromise = client.connect();
-    } catch (err: any) {
+    } catch {
       // mongodb-client-encryption not available in this environment (e.g. Vercel serverless,
       // or env vars still contain placeholder values). Fall through to plain connection.
       encryptedClientPromise = null;

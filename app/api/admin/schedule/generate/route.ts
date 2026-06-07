@@ -3,7 +3,7 @@ import { ObjectId } from "mongodb";
 import { getSession } from "@/lib/auth";
 import { getSchoolId } from "@/lib/db/school-context";
 import { getScopedDb } from "@/lib/db/scoped";
-import { hasPermission } from "@/lib/auth/permissions";
+import { hasPermission, parseRoleAssignments } from "@/lib/auth/permissions";
 
 // Round-robin algorithm for generating matches
 function generateRoundRobin(teams: string[], startDate: Date, matchDurationMinutes: number = 90) {
@@ -90,10 +90,12 @@ export async function POST(req: NextRequest) {
 
   // Verify admin permission
   const db = await getScopedDb(schoolId);
-  const assignments = await db
-    .collection("role_assignments")
-    .find({ user_id: session.user.id, school_id: schoolId, revoked_at: null })
-    .toArray();
+  const assignments = parseRoleAssignments(
+    await db
+      .collection("role_assignments")
+      .find({ user_id: session.user.id, school_id: schoolId, revoked_at: null })
+      .toArray()
+  );
 
   if (!hasPermission(assignments, "school:manage_leagues")) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });

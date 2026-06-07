@@ -26,13 +26,14 @@ const UpdateLeagueRequestSchema = z.object({
 
 export async function PATCH(
   req: NextRequest,
-  { params }: { params: { leagueId: string } }
+  { params }: { params: Promise<{ leagueId: string }> }
 ) {
+  const { leagueId } = await params;
   const session = await getSessionWithRoles();
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const canManageAny = hasPermission(session.assignments, "league:manage_any");
-  const canManageScoped = hasPermission(session.assignments, "league:manage", params.leagueId, "league");
+  const canManageScoped = hasPermission(session.assignments, "league:manage", leagueId, "league");
   if (!canManageAny && !canManageScoped) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
@@ -44,7 +45,7 @@ export async function PATCH(
   }
 
   const db = await getScopedDb(session.schoolId);
-  const league = await db.collection("leagues").findOne({ _id: new ObjectId(params.leagueId) });
+  const league = await db.collection("leagues").findOne({ _id: new ObjectId(leagueId) });
   if (!league) return NextResponse.json({ error: "League not found" }, { status: 404 });
 
   if (parsed.data.status) {
@@ -65,7 +66,7 @@ export async function PATCH(
   if (parsed.data.end_date !== undefined) updates.end_date = new Date(parsed.data.end_date);
   if (parsed.data.status !== undefined) updates.status = parsed.data.status;
 
-  await db.collection("leagues").updateOne({ _id: new ObjectId(params.leagueId) }, { $set: updates });
+  await db.collection("leagues").updateOne({ _id: new ObjectId(leagueId) }, { $set: updates });
 
   await db.collection("audit_logs").insertOne({
     school_id: session.schoolId,
@@ -73,7 +74,7 @@ export async function PATCH(
     actor_user_id: session.userId,
     action: "LEAGUE_UPDATED",
     entity_type: "league",
-    entity_id: params.leagueId,
+    entity_id: leagueId,
     metadata: updates,
   });
 

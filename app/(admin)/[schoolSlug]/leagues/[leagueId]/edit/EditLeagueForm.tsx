@@ -92,8 +92,9 @@ export function EditLeagueForm({
         <form onSubmit={handleSaveSettings} className="space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="md:col-span-2">
-              <label className="block text-sm font-medium text-gray-300 mb-1">League Name *</label>
+              <label htmlFor="league-name" className="block text-sm font-medium text-gray-300 mb-1">League Name *</label>
               <input
+                id="league-name"
                 type="text"
                 required
                 minLength={2}
@@ -104,8 +105,9 @@ export function EditLeagueForm({
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-300 mb-1">Division <span className="text-gray-500 font-normal">(optional)</span></label>
+              <label htmlFor="league-division" className="block text-sm font-medium text-gray-300 mb-1">Division <span className="text-gray-500 font-normal">(optional)</span></label>
               <input
+                id="league-division"
                 type="text"
                 value={form.division}
                 onChange={(e) => set("division", e.target.value)}
@@ -113,8 +115,9 @@ export function EditLeagueForm({
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-300 mb-1">Max Roster Size *</label>
+              <label htmlFor="league-max-roster" className="block text-sm font-medium text-gray-300 mb-1">Max Roster Size *</label>
               <input
+                id="league-max-roster"
                 type="number"
                 required
                 min={1}
@@ -125,8 +128,9 @@ export function EditLeagueForm({
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-300 mb-1">Start Date</label>
+              <label htmlFor="league-start-date" className="block text-sm font-medium text-gray-300 mb-1">Start Date</label>
               <input
+                id="league-start-date"
                 type="datetime-local"
                 value={form.start_date}
                 onChange={(e) => set("start_date", e.target.value)}
@@ -134,8 +138,9 @@ export function EditLeagueForm({
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-300 mb-1">End Date</label>
+              <label htmlFor="league-end-date" className="block text-sm font-medium text-gray-300 mb-1">End Date</label>
               <input
+                id="league-end-date"
                 type="datetime-local"
                 value={form.end_date}
                 onChange={(e) => set("end_date", e.target.value)}

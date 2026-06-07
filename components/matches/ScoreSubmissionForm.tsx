@@ -41,10 +41,11 @@ export function ScoreSubmissionForm({
 
       <div className="grid grid-cols-2 gap-4 mb-4">
         <div>
-          <label className={`block text-sm font-medium mb-1 ${myTeamRole === "home" ? "text-volt" : "text-gray-400"}`}>
+          <label htmlFor="home-score" className={`block text-sm font-medium mb-1 ${myTeamRole === "home" ? "text-volt" : "text-gray-400"}`}>
             Home {myTeamRole === "home" && "(You)"}
           </label>
           <input
+            id="home-score"
             type="number"
             min={0}
             value={homeScore}
@@ -53,10 +54,11 @@ export function ScoreSubmissionForm({
           />
         </div>
         <div>
-          <label className={`block text-sm font-medium mb-1 ${myTeamRole === "away" ? "text-volt" : "text-gray-400"}`}>
+          <label htmlFor="away-score" className={`block text-sm font-medium mb-1 ${myTeamRole === "away" ? "text-volt" : "text-gray-400"}`}>
             Away {myTeamRole === "away" && "(You)"}
           </label>
           <input
+            id="away-score"
             type="number"
             min={0}
             value={awayScore}

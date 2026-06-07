@@ -3,10 +3,11 @@ import { ObjectId } from "mongodb";
 import { getScopedDb } from "@/lib/db/scoped";
 import { getSchoolId } from "@/lib/db/school-context";
 import { getSession } from "@/lib/auth";
-import { hasPermission } from "@/lib/auth/permissions";
+import { hasPermission, parseRoleAssignments } from "@/lib/auth/permissions";
 import { ApproveScoreRequestSchema } from "@/lib/validations/match";
 
-export async function PATCH(req: NextRequest, { params }: { params: { matchId: string } }) {
+export async function PATCH(req: NextRequest, { params }: { params: Promise<{ matchId: string }> }) {
+  const { matchId } = await params;
   const session = await getSession();
   if (!session?.user?.id) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -18,11 +19,13 @@ export async function PATCH(req: NextRequest, { params }: { params: { matchId: s
   }
 
   const db = await getScopedDb(schoolId);
-  const assignments = await db
-    .collection("role_assignments")
-    .find({ user_id: session.user.id, school_id: schoolId, revoked_at: null })
-    .toArray();
-  if (!hasPermission(assignments as any, "score:resolve_dispute")) {
+  const assignments = parseRoleAssignments(
+    await db
+      .collection("role_assignments")
+      .find({ user_id: session.user.id, school_id: schoolId, revoked_at: null })
+      .toArray()
+  );
+  if (!hasPermission(assignments, "score:resolve_dispute")) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
@@ -37,7 +40,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { matchId: s
 
   const submissions = await db
     .collection("score_submissions")
-    .find({ match_id: params.matchId, status: "pending" })
+    .find({ match_id: matchId, status: "pending" })
     .toArray();
 
   if (decision === "approve") {
@@ -47,7 +50,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { matchId: s
     }
 
     await db.collection("score_submissions").updateMany(
-      { match_id: params.matchId },
+      { match_id: matchId },
       {
         $set: {
           status: "approved",
@@ -57,12 +60,12 @@ export async function PATCH(req: NextRequest, { params }: { params: { matchId: s
       }
     );
     await db.collection("matches").updateOne(
-      { _id: new ObjectId(params.matchId) },
+      { _id: new ObjectId(matchId) },
       { $set: { status: "completed" } }
     );
   } else {
     await db.collection("matches").updateOne(
-      { _id: new ObjectId(params.matchId) },
+      { _id: new ObjectId(matchId) },
       { $set: { status: "disputed", admin_notes: dispute_notes } }
     );
   }
@@ -73,7 +76,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { matchId: s
     actor_user_id: session.user.id,
     action: "SCORE_APPROVED",
     entity_type: "match",
-    entity_id: params.matchId,
+    entity_id: matchId,
     metadata: { decision, dispute_notes },
   });
 

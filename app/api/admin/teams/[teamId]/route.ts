@@ -24,8 +24,9 @@ const ACTION_STATUS: Record<string, string> = {
 
 export async function PATCH(
   req: NextRequest,
-  { params }: { params: { teamId: string } }
+  { params }: { params: Promise<{ teamId: string }> }
 ) {
+  const { teamId } = await params;
   const session = await getSessionWithRoles();
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   if (!hasPermission(session.assignments, "team:approve")) {
@@ -41,12 +42,12 @@ export async function PATCH(
   const { action, reason } = parsed.data;
   const db = await getScopedDb(session.schoolId);
 
-  const team = await db.collection("teams").findOne({ _id: new ObjectId(params.teamId) });
+  const team = await db.collection("teams").findOne({ _id: new ObjectId(teamId) });
   if (!team) return NextResponse.json({ error: "Team not found" }, { status: 404 });
 
   const now = new Date();
   await db.collection("teams").updateOne(
-    { _id: new ObjectId(params.teamId) },
+    { _id: new ObjectId(teamId) },
     { $set: { status: ACTION_STATUS[action], updated_at: now } }
   );
 
@@ -56,7 +57,7 @@ export async function PATCH(
     actor_user_id: session.userId,
     action: ACTION_AUDIT[action],
     entity_type: "team",
-    entity_id: params.teamId,
+    entity_id: teamId,
     metadata: { reason: reason ?? null },
   });
 

@@ -4,7 +4,7 @@ import { z } from "zod";
 import { getSession } from "@/lib/auth";
 import { getSchoolId } from "@/lib/db/school-context";
 import { getScopedDb } from "@/lib/db/scoped";
-import { hasPermission } from "@/lib/auth/permissions";
+import { hasPermission, parseRoleAssignments } from "@/lib/auth/permissions";
 
 const IncidentReportSchema = z.object({
   severity: z.enum(["low", "medium", "high", "critical"]),
@@ -14,8 +14,9 @@ const IncidentReportSchema = z.object({
 
 export async function POST(
   req: NextRequest,
-  { params }: { params: { matchId: string } }
+  { params }: { params: Promise<{ matchId: string }> }
 ) {
+  const { matchId } = await params;
   const session = await getSession();
   if (!session?.user?.id) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -27,15 +28,17 @@ export async function POST(
   }
 
   const db = await getScopedDb(schoolId);
-  const assignments = await db
-    .collection("role_assignments")
-    .find({ user_id: session.user.id, school_id: schoolId, revoked_at: null })
-    .toArray();
+  const assignments = parseRoleAssignments(
+    await db
+      .collection("role_assignments")
+      .find({ user_id: session.user.id, school_id: schoolId, revoked_at: null })
+      .toArray()
+  );
 
   const canReport =
-    hasPermission(assignments as any, "incident:report") ||
-    hasPermission(assignments as any, "league:manage") ||
-    hasPermission(assignments as any, "league:manage_any");
+    hasPermission(assignments, "incident:report") ||
+    hasPermission(assignments, "league:manage") ||
+    hasPermission(assignments, "league:manage_any");
 
   if (!canReport) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
@@ -53,7 +56,7 @@ export async function POST(
   // Verify the match exists within this school's scope
   const match = await db
     .collection("matches")
-    .findOne({ _id: new ObjectId(params.matchId) });
+    .findOne({ _id: new ObjectId(matchId) });
   if (!match) {
     return NextResponse.json({ error: "Match not found" }, { status: 404 });
   }
@@ -62,7 +65,7 @@ export async function POST(
   const { severity, description, involved_user_ids } = parsed.data;
 
   const result = await db.collection("incident_reports").insertOne({
-    match_id: params.matchId,
+    match_id: matchId,
     reported_by_user_id: session.user.id,
     severity,
     description,
@@ -78,7 +81,7 @@ export async function POST(
     action: "INCIDENT_REPORTED",
     entity_type: "incident_report",
     entity_id: result.insertedId.toString(),
-    metadata: { match_id: params.matchId, severity },
+    metadata: { match_id: matchId, severity },
   });
 
   return NextResponse.json(

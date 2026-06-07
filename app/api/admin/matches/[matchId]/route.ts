@@ -22,8 +22,9 @@ const AdminMatchUpdateSchema = z.object({
 
 export async function PATCH(
   req: NextRequest,
-  { params }: { params: { matchId: string } }
+  { params }: { params: Promise<{ matchId: string }> }
 ) {
+  const { matchId } = await params;
   const session = await getSessionWithRoles();
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   if (!hasPermission(session.assignments, "match:schedule")) {
@@ -37,7 +38,7 @@ export async function PATCH(
   }
 
   const db = await getScopedDb(session.schoolId);
-  const match = await db.collection("matches").findOne({ _id: new ObjectId(params.matchId) });
+  const match = await db.collection("matches").findOne({ _id: new ObjectId(matchId) });
   if (!match) return NextResponse.json({ error: "Match not found" }, { status: 404 });
 
   const updates: Record<string, any> = { updated_at: new Date() };
@@ -45,7 +46,7 @@ export async function PATCH(
   if (parsed.data.location !== undefined) updates.location = parsed.data.location;
   if (parsed.data.status !== undefined) updates.status = parsed.data.status;
 
-  await db.collection("matches").updateOne({ _id: new ObjectId(params.matchId) }, { $set: updates });
+  await db.collection("matches").updateOne({ _id: new ObjectId(matchId) }, { $set: updates });
 
   const isCancellation = parsed.data.status === "completed" && parsed.data.cancellation_reason;
   const now = new Date();
@@ -55,7 +56,7 @@ export async function PATCH(
     actor_user_id: session.userId,
     action: isCancellation ? "MATCH_CANCELLED" : "MATCH_RESCHEDULED",
     entity_type: "match",
-    entity_id: params.matchId,
+    entity_id: matchId,
     metadata: {
       ...updates,
       ...(isCancellation ? { cancellation_reason: parsed.data.cancellation_reason } : {}),

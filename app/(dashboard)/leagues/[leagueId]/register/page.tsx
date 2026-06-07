@@ -121,8 +121,9 @@ export default function LeagueRegistrationPage() {
             <button
               onClick={() => setMode(null)}
               className="btn-ghost p-2"
+              aria-label="Back"
             >
-              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m15 18-6-6 6-6"/></svg>
+              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="m15 18-6-6 6-6"/></svg>
             </button>
             <h2 className="heading-sm text-white">Create Your Team</h2>
           </div>
@@ -213,8 +214,9 @@ export default function LeagueRegistrationPage() {
             <button
               onClick={() => setMode(null)}
               className="btn-ghost p-2"
+              aria-label="Back"
             >
-              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m15 18-6-6 6-6"/></svg>
+              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="m15 18-6-6 6-6"/></svg>
             </button>
             <h2 className="heading-sm text-white">Join a Team</h2>
           </div>

@@ -1,4 +1,16 @@
-import { Collection, Db, Document, Filter } from "mongodb";
+import {
+  AggregateOptions,
+  Collection,
+  CountDocumentsOptions,
+  Db,
+  DeleteOptions,
+  Document,
+  Filter,
+  FindOptions,
+  OptionalUnlessRequiredId,
+  UpdateFilter,
+  UpdateOptions,
+} from "mongodb";
 import { getDb } from "@/lib/mongodb";
 import type { RoleAssignmentDbDocument } from "@/lib/validations/school";
 
@@ -83,54 +95,53 @@ class ScopedCollection<T extends Document = Document> {
     return { $and: [scopeFilter, filter] } as Filter<T>;
   }
 
-  async findOne(filter: Filter<T>, options?: any) {
+  async findOne(filter: Filter<T>, options?: FindOptions) {
     return this.collection.findOne(this.injectScope(filter), options);
   }
 
-  find(filter: Filter<T>, options?: any) {
+  find(filter: Filter<T>, options?: FindOptions) {
     return this.collection.find(this.injectScope(filter), options);
   }
 
-  async insertOne(doc: Partial<T>, options?: any) {
-    const document = { ...doc } as any;
-    if (document.school_id && document.school_id !== this.scope.schoolId) {
+  async insertOne(doc: Partial<T>, options?: Parameters<Collection["insertOne"]>[1]) {
+    const withScope = { ...doc, school_id: this.scope.schoolId } as Document;
+    if (
+      (doc as Document).school_id &&
+      (doc as Document).school_id !== this.scope.schoolId
+    ) {
       throw new Error("Cross-tenant insert attempted");
     }
-    document.school_id = this.scope.schoolId;
-    return this.collection.insertOne(document, options);
+    return this.collection.insertOne(withScope as OptionalUnlessRequiredId<T>, options);
   }
 
-  async updateOne(filter: Filter<T>, update: any, options?: any) {
+  async updateOne(filter: Filter<T>, update: UpdateFilter<T>, options?: UpdateOptions) {
     return this.collection.updateOne(this.injectScope(filter), update, options);
   }
 
-  async updateMany(filter: Filter<T>, update: any, options?: any) {
+  async updateMany(filter: Filter<T>, update: UpdateFilter<T>, options?: UpdateOptions) {
     return this.collection.updateMany(this.injectScope(filter), update, options);
   }
 
-  async deleteOne(filter: Filter<T>, options?: any) {
+  async deleteOne(filter: Filter<T>, options?: DeleteOptions) {
     return this.collection.deleteOne(this.injectScope(filter), options);
   }
 
-  async deleteMany(filter: Filter<T>, options?: any) {
+  async deleteMany(filter: Filter<T>, options?: DeleteOptions) {
     return this.collection.deleteMany(this.injectScope(filter), options);
   }
 
-  async countDocuments(filter: Filter<T>, options?: any) {
+  async countDocuments(filter: Filter<T>, options?: CountDocumentsOptions) {
     return this.collection.countDocuments(this.injectScope(filter), options);
   }
 
   // Aggregation with automatic $match injection for tenant isolation
-  async aggregate(pipeline: any[], options?: any) {
+  async aggregate(pipeline: Document[], options?: AggregateOptions) {
     if (!this.isTenantScoped) {
       return this.collection.aggregate(pipeline, options).toArray();
     }
-    
-    // Prepend tenant filter to pipeline
+
     const scopeMatch = { $match: { school_id: this.scope.schoolId } };
-    const scopedPipeline = [scopeMatch, ...pipeline];
-    
-    return this.collection.aggregate(scopedPipeline, options).toArray();
+    return this.collection.aggregate([scopeMatch, ...pipeline], options).toArray();
   }
 }
 

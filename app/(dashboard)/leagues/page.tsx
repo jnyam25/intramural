@@ -115,7 +115,7 @@ export default async function LeaguesPage() {
                             <span className="text-cyber">{league.teamCount || 0}/{league.maxTeams} teams</span>
                           </div>
                           <div className="progress-bar">
-                            <div className="progress-bar-fill bg-cyber" style={{ width: `${league.registrationProgress}%` }} />
+                            <div className="progress-bar-fill bg-cyber" style={{ "--progress-width": `${league.registrationProgress}%` } as React.CSSProperties} />
                           </div>
                         </div>
                       )}

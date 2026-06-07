@@ -1,8 +1,10 @@
 import {
+  BulkWriteOptions,
   Collection,
   DeleteOptions,
   Document,
   Filter,
+  FindOneAndUpdateOptions,
   FindOptions,
   UpdateFilter,
   UpdateOptions,
@@ -38,6 +40,13 @@ class ScopedCollection {
     return this.col.insertOne(withTenant);
   }
 
+  insertMany(docs: Document[], options?: BulkWriteOptions) {
+    const withTenant = this.isGlobal
+      ? docs
+      : docs.map((doc) => ({ ...doc, school_id: this.schoolId }));
+    return this.col.insertMany(withTenant, options);
+  }
+
   updateOne(
     filter: Filter<Document>,
     update: UpdateFilter<Document> | Document,
@@ -57,15 +66,14 @@ class ScopedCollection {
   async findOneAndUpdate(
     filter: Filter<Document>,
     update: UpdateFilter<Document>,
-    options?: Record<string, unknown>
+    options?: FindOneAndUpdateOptions
   ): Promise<Document | null> {
-    // Cast through unknown to avoid overload resolution picking ModifyResult variant.
-    // MongoDB 6+ returns the document directly (WithId<T> | null), not { value }.
-    return this.col.findOneAndUpdate(
-      this.scope(filter),
-      update,
-      options as any
-    ) as unknown as Promise<Document | null>;
+    // MongoDB 6+ returns WithId<T> | null directly; cast to match declared return type.
+    // Split the call to help TypeScript resolve the correct overload.
+    const result = options
+      ? this.col.findOneAndUpdate(this.scope(filter), update, options)
+      : this.col.findOneAndUpdate(this.scope(filter), update);
+    return result as unknown as Promise<Document | null>;
   }
 
   deleteOne(filter: Filter<Document>, options?: DeleteOptions) {

@@ -8,8 +8,9 @@ import { ApproveRosterMemberSchema } from "@/lib/validations/team";
 // GET /api/teams/[teamId]/roster - List roster with user details
 export async function GET(
   req: NextRequest,
-  { params }: { params: { teamId: string } }
+  { params }: { params: Promise<{ teamId: string }> }
 ) {
+  const { teamId } = await params;
   const session = await getSession();
   if (!session?.user?.id) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -23,7 +24,7 @@ export async function GET(
   const db = await getScopedDb(schoolId);
   const team = await db
     .collection("teams")
-    .findOne({ _id: new ObjectId(params.teamId), school_id: schoolId });
+    .findOne({ _id: new ObjectId(teamId), school_id: schoolId });
 
   if (!team) {
     return NextResponse.json({ error: "Team not found" }, { status: 404 });
@@ -73,7 +74,8 @@ export async function GET(
 }
 
 // PATCH /api/teams/[teamId]/roster - Approve/deny/remove members
-export async function PATCH(req: NextRequest, { params }: { params: { teamId: string } }) {
+export async function PATCH(req: NextRequest, { params }: { params: Promise<{ teamId: string }> }) {
+  const { teamId } = await params;
   const session = await getSession();
   if (!session?.user?.id) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -91,7 +93,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { teamId: st
 
   const { userId, action } = parsed.data;
   const db = await getScopedDb(schoolId);
-  const team = await db.collection("teams").findOne({ _id: new ObjectId(params.teamId) });
+  const team = await db.collection("teams").findOne({ _id: new ObjectId(teamId) });
 
   if (!team) return NextResponse.json({ error: "Team not found" }, { status: 404 });
   if (team.captain_user_id !== session.user.id) {
@@ -102,7 +104,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { teamId: st
 
   if (action === "remove") {
     await db.collection("teams").updateOne(
-      { _id: new ObjectId(params.teamId) },
+      { _id: new ObjectId(teamId) },
       { $pull: { roster: { user_id: userId } } }
     );
     await db.collection("audit_logs").insertOne({
@@ -111,7 +113,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { teamId: st
       actor_user_id: session.user.id,
       action: "ROSTER_REMOVED",
       entity_type: "team",
-      entity_id: params.teamId,
+      entity_id: teamId,
       metadata: { removed_user_id: userId },
     });
     return NextResponse.json({ message: "Member removed" });
@@ -129,7 +131,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { teamId: st
   }
 
   await db.collection("teams").updateOne(
-    { _id: new ObjectId(params.teamId), "roster.user_id": userId },
+    { _id: new ObjectId(teamId), "roster.user_id": userId },
     {
       $set: {
         "roster.$.status": "approved",
@@ -144,7 +146,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { teamId: st
     actor_user_id: session.user.id,
     action: "ROSTER_APPROVED",
     entity_type: "team",
-    entity_id: params.teamId,
+    entity_id: teamId,
     metadata: { approved_user_id: userId },
   });
 

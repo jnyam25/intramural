@@ -41,6 +41,8 @@ function makeSession(userId = USER_ID) {
   return { user: { id: userId, email: "test@example.com" } };
 }
 
+const GRANTER_ID = "cccccccccccccccccccccccc";
+
 function makeAssignments(role: string) {
   return [
     {
@@ -49,7 +51,7 @@ function makeAssignments(role: string) {
       school_id: SCHOOL_ID,
       role,
       scope: {},
-      granted_by_user_id: "root",
+      granted_by_user_id: GRANTER_ID,
       granted_at: new Date(),
     },
   ];

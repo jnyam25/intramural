@@ -3,13 +3,14 @@ import { ObjectId } from "mongodb";
 import { getSession } from "@/lib/auth";
 import { getSchoolId } from "@/lib/db/school-context";
 import { getScopedDb } from "@/lib/db/scoped";
-import { hasPermission } from "@/lib/auth/permissions";
+import { hasPermission, parseRoleAssignments } from "@/lib/auth/permissions";
 
 // GET /api/admin/eligibility/[userId] - Mock SIS eligibility check
 export async function GET(
   req: NextRequest,
-  { params }: { params: { userId: string } }
+  { params }: { params: Promise<{ userId: string }> }
 ) {
+  const { userId } = await params;
   const session = await getSession();
   if (!session?.user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -22,10 +23,12 @@ export async function GET(
 
   // Verify admin permission
   const db = await getScopedDb(schoolId);
-  const assignments = await db
-    .collection("role_assignments")
-    .find({ user_id: session.user.id, school_id: schoolId, revoked_at: null })
-    .toArray();
+  const assignments = parseRoleAssignments(
+    await db
+      .collection("role_assignments")
+      .find({ user_id: session.user.id, school_id: schoolId, revoked_at: null })
+      .toArray()
+  );
 
   if (!hasPermission(assignments, "school:view_all_reports")) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
@@ -33,7 +36,7 @@ export async function GET(
 
   // Check cache first
   const cached = await db.collection("eligibility_checks").findOne({
-    user_id: params.userId,
+    user_id: userId,
     school_id: schoolId,
     expires_at: { $gt: new Date() },
   });
@@ -55,7 +58,7 @@ export async function GET(
 
   // Get user details
   const user = await db.collection("users").findOne({
-    _id: new ObjectId(params.userId),
+    _id: new ObjectId(userId),
   });
 
   if (!user) {
@@ -77,7 +80,7 @@ export async function GET(
   // Cache the result
   await db.collection("eligibility_checks").insertOne({
     _id: new ObjectId(),
-    user_id: params.userId,
+    user_id: userId,
     school_id: schoolId,
     checked_at: now,
     is_eligible: isEligible,
@@ -95,7 +98,7 @@ export async function GET(
     actor_user_id: session.user.id,
     action: "ELIGIBILITY_CHECKED",
     entity_type: "user",
-    entity_id: params.userId,
+    entity_id: userId,
     metadata: { is_eligible: isEligible, status, source: "mock_sis_api" },
     ip_address: req.headers.get("x-forwarded-for") || "unknown",
     user_agent: req.headers.get("user-agent") || "unknown",

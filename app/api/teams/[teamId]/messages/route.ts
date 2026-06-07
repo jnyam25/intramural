@@ -7,8 +7,9 @@ import { getScopedDb } from "@/lib/db/scoped";
 // GET /api/teams/[teamId]/messages - Get chat messages
 export async function GET(
   req: NextRequest,
-  { params }: { params: { teamId: string } }
+  { params }: { params: Promise<{ teamId: string }> }
 ) {
+  const { teamId } = await params;
   const session = await getSession();
   if (!session?.user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -23,7 +24,7 @@ export async function GET(
 
   // Verify user is team member
   const team = await db.collection("teams").findOne({
-    _id: new ObjectId(params.teamId),
+    _id: new ObjectId(teamId),
     school_id: schoolId,
     "roster.user_id": session.user.id,
     "roster.status": "approved",
@@ -36,7 +37,7 @@ export async function GET(
   // Fetch messages
   const messages = await db
     .collection("messages")
-    .find({ team_id: params.teamId, deleted_at: null })
+    .find({ team_id: teamId, deleted_at: null })
     .sort({ created_at: -1 })
     .limit(50)
     .toArray();
@@ -71,8 +72,9 @@ export async function GET(
 // POST /api/teams/[teamId]/messages - Send message
 export async function POST(
   req: NextRequest,
-  { params }: { params: { teamId: string } }
+  { params }: { params: Promise<{ teamId: string }> }
 ) {
+  const { teamId } = await params;
   const session = await getSession();
   if (!session?.user?.id) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -87,7 +89,7 @@ export async function POST(
 
   // Verify user is team member
   const team = await db.collection("teams").findOne({
-    _id: new ObjectId(params.teamId),
+    _id: new ObjectId(teamId),
     school_id: schoolId,
     "roster.user_id": session.user.id,
     "roster.status": "approved",
@@ -106,7 +108,7 @@ export async function POST(
 
   const messageDoc = {
     _id: new ObjectId(),
-    team_id: params.teamId,
+    team_id: teamId,
     sender_user_id: session.user.id,
     content: body.content.trim(),
     message_type: body.message_type || "text",

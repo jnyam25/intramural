@@ -49,7 +49,7 @@ export default async function DashboardPage() {
           </div>
           <div className="heading-sm text-white">{stats.wins}</div>
           <div className="progress-bar">
-            <div className="progress-bar-fill" style={{ width: '60%' }}></div>
+            <div className="progress-bar-fill w-[60%]"></div>
           </div>
         </div>
 
@@ -60,7 +60,7 @@ export default async function DashboardPage() {
           </div>
           <div className="heading-sm text-white">{stats.losses}</div>
           <div className="progress-bar">
-            <div className="progress-bar-fill bg-gray-500" style={{ width: '20%' }}></div>
+            <div className="progress-bar-fill bg-gray-500 w-[20%]"></div>
           </div>
         </div>
 
@@ -71,7 +71,7 @@ export default async function DashboardPage() {
           </div>
           <div className="heading-sm text-cyber">{stats.winRate}%</div>
           <div className="progress-bar">
-            <div className="progress-bar-fill bg-cyber" style={{ width: `${stats.winRate}%` }}></div>
+            <div className="progress-bar-fill bg-cyber" style={{ "--progress-width": `${stats.winRate}%` } as React.CSSProperties}></div>
           </div>
         </div>
 
@@ -82,7 +82,7 @@ export default async function DashboardPage() {
           </div>
           <div className="heading-sm text-volt">{stats.pointsScored}</div>
           <div className="progress-bar">
-            <div className="progress-bar-fill bg-hyper" style={{ width: '80%' }}></div>
+            <div className="progress-bar-fill bg-hyper w-[80%]"></div>
           </div>
         </div>
       </div>

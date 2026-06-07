@@ -6,8 +6,9 @@ import { getScopedDb } from "@/lib/db/scoped";
 
 export async function POST(
   req: NextRequest,
-  { params }: { params: { teamId: string } }
+  { params }: { params: Promise<{ teamId: string }> }
 ) {
+  const { teamId } = await params;
   const session = await getSession();
   if (!session?.user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -32,7 +33,7 @@ export async function POST(
   
   // Find team by ID and verify invite code
   const team = await db.collection("teams").findOne({
-    _id: new ObjectId(params.teamId),
+    _id: new ObjectId(teamId),
     school_id: schoolId,
     invite_code: inviteCode.toUpperCase(),
   });
@@ -103,7 +104,7 @@ export async function POST(
     type: "roster_request",
     title: "New Join Request",
     body: `${session.user.first_name} ${session.user.last_name} wants to join ${team.name}`,
-    action_url: `/teams/${params.teamId}/roster`,
+    action_url: `/teams/${teamId}/roster`,
     read_at: null,
     email_sent_at: null,
     created_at: now,
@@ -116,7 +117,7 @@ export async function POST(
     actor_user_id: session.user.id,
     action: "ROSTER_JOINED",
     entity_type: "team",
-    entity_id: params.teamId,
+    entity_id: teamId,
     metadata: { 
       team_name: team.name,
       status: "pending",
